@@ -19,6 +19,60 @@
     if (btns[0]) btns[0].setAttribute('aria-selected', 'true');
   });
 
+  // Melintir popups: <div class="mel-popup" data-mode="load|click" ...> (see Theme::inject_popup).
+  document.querySelectorAll('[data-popup]').forEach(function (root) {
+    var id = root.getAttribute('data-popup');
+    var mode = root.getAttribute('data-mode') || 'load';
+    var delay = (parseInt(root.getAttribute('data-delay') || '3', 10) || 0) * 1000;
+    var selector = root.getAttribute('data-selector') || '';
+    var freq = root.getAttribute('data-frequency') || 'always';
+    var key = 'mel-popup-' + id;
+    var seen = function () {
+      try {
+        return freq === 'session' && window.sessionStorage.getItem(key);
+      } catch (e) {
+        return false;
+      }
+    };
+    var mark = function () {
+      try {
+        if (freq === 'session') window.sessionStorage.setItem(key, '1');
+      } catch (e) {}
+    };
+    var open = function () {
+      if (seen()) return;
+      root.hidden = false;
+      document.body.classList.add('mel-lock');
+      mark();
+    };
+    var close = function () {
+      root.hidden = true;
+      document.body.classList.remove('mel-lock');
+    };
+    root.querySelectorAll('[data-close]').forEach(function (b) {
+      b.addEventListener('click', close);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !root.hidden) close();
+    });
+    if (mode === 'click' && selector) {
+      var targets = [];
+      try {
+        targets = document.querySelectorAll(selector);
+      } catch (e) {
+        targets = [];
+      }
+      targets.forEach(function (el) {
+        el.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          open();
+        });
+      });
+    } else {
+      window.setTimeout(open, delay);
+    }
+  });
+
   // Animated counters: <span data-count="1234"> in .mel-counter.
   var counters = document.querySelectorAll('[data-count]');
   if (!counters.length || !('IntersectionObserver' in window)) {

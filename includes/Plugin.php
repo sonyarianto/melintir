@@ -124,6 +124,15 @@ class Plugin {
 	}
 
 	public function frontend_assets() {
+		// Base chrome (tabs, popup) on every frontend page; per-page CSS only where used.
+		$css_path = MELINTIR_PATH . 'assets/frontend/frontend.css';
+		if ( file_exists( $css_path ) ) {
+			wp_enqueue_style( 'melintir-base', MELINTIR_URL . 'assets/frontend/frontend.css', array(), (string) filemtime( $css_path ) );
+		}
+		$js_path = MELINTIR_PATH . 'assets/frontend/frontend.js';
+		if ( file_exists( $js_path ) ) {
+			wp_enqueue_script( 'melintir-front', MELINTIR_URL . 'assets/frontend/frontend.js', array(), (string) filemtime( $js_path ), true );
+		}
 		if ( ! is_singular() ) {
 			return;
 		}
@@ -133,10 +142,6 @@ class Plugin {
 			wp_register_style( 'melintir-front', false, array(), MELINTIR_VERSION );
 			wp_enqueue_style( 'melintir-front' );
 			wp_add_inline_style( 'melintir-front', $css );
-		}
-		$js_path = MELINTIR_PATH . 'assets/frontend/frontend.js';
-		if ( file_exists( $js_path ) ) {
-			wp_enqueue_script( 'melintir-front', MELINTIR_URL . 'assets/frontend/frontend.js', array(), (string) filemtime( $js_path ), true );
 		}
 	}
 }

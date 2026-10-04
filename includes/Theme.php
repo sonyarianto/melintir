@@ -17,6 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   - Block themes: `render_block` swaps core/template-part header/footer.
  *   - Classic themes: NOT replaced in slice 1 (see Theme::render for why);
  *     use the bundled Canvas page template for full-bleed landing pages.
+ * Popups (lite): location `popup` + trigger meta, injected at `wp_footer`,
+ * driven by assets/frontend/frontend.js (delay / click / once-per-session).
  */
 class Theme {
 
@@ -32,6 +34,7 @@ class Theme {
 		add_filter( 'render_block', array( __CLASS__, 'swap_template_part' ), 10, 2 );
 		add_filter( 'theme_page_templates', array( __CLASS__, 'canvas_template' ) );
 		add_filter( 'template_include', array( __CLASS__, 'load_canvas' ) );
+		add_action( 'wp_footer', array( __CLASS__, 'inject_popup' ) );
 	}
 
 	public static function post_type() {
@@ -108,11 +111,29 @@ class Theme {
 		$loc = get_post_meta( $post->ID, self::LOC_META, true );
 		echo '<p><label>' . esc_html__( 'Displays as:', 'melintir' ) . '<br />';
 		echo '<select name="melintir_location">';
-		foreach ( array( '' => __( '— Select —', 'melintir' ), 'header' => __( 'Site Header', 'melintir' ), 'footer' => __( 'Site Footer', 'melintir' ) ) as $v => $label ) {
+		foreach ( array( '' => __( '— Select —', 'melintir' ), 'header' => __( 'Site Header', 'melintir' ), 'footer' => __( 'Site Footer', 'melintir' ), 'popup' => __( 'Popup', 'melintir' ) ) as $v => $label ) {
 			echo '<option value="' . esc_attr( $v ) . '"' . selected( $loc, $v, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></label></p>';
 		echo '<p class="description">' . esc_html__( 'Slice 1 rule: entire site. Per-page/archive conditions come in slice 2.', 'melintir' ) . '</p>';
+		$trigger = get_post_meta( $post->ID, '_melintir_trigger', true );
+		if ( ! is_array( $trigger ) ) {
+			$trigger = array();
+		}
+		$mode      = isset( $trigger['mode'] ) ? (string) $trigger['mode'] : 'load';
+		$delay     = isset( $trigger['delay'] ) ? intval( $trigger['delay'] ) : 3;
+		$selector  = isset( $trigger['selector'] ) ? (string) $trigger['selector'] : '';
+		$frequency = isset( $trigger['frequency'] ) ? (string) $trigger['frequency'] : 'always';
+		echo '<p><strong>' . esc_html__( 'Popup trigger (popups only):', 'melintir' ) . '</strong><br />';
+		echo '<label><input type="radio" name="melintir_trigger_mode" value="load"' . checked( $mode, 'load', false ) . ' /> ' . esc_html__( 'On page load after delay', 'melintir' ) . '</label><br />';
+		echo '<label><input type="radio" name="melintir_trigger_mode" value="click"' . checked( $mode, 'click', false ) . ' /> ' . esc_html__( 'On click of elements matching selector', 'melintir' ) . '</label></p>';
+		echo '<p><label>' . esc_html__( 'Delay (seconds):', 'melintir' ) . ' <input type="number" name="melintir_trigger_delay" value="' . esc_attr( (string) $delay ) . '" min="0" max="120" style="width:5em" /></label></p>';
+		echo '<p><label>' . esc_html__( 'Click selector (e.g. .open-promo):', 'melintir' ) . '<br /><input type="text" name="melintir_trigger_selector" value="' . esc_attr( $selector ) . '" class="widefat" /></label></p>';
+		echo '<p><label>' . esc_html__( 'Frequency:', 'melintir' ) . '<br /><select name="melintir_trigger_frequency">';
+		foreach ( array( 'always' => __( 'Every page view', 'melintir' ), 'session' => __( 'Once per session', 'melintir' ) ) as $v => $label ) {
+			echo '<option value="' . esc_attr( $v ) . '"' . selected( $frequency, $v, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></label></p>';
 		echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=melintir&post=' . $post->ID ) ) . '">' . esc_html__( 'Edit with Melintir', 'melintir' ) . '</a></p>';
 	}
 
@@ -127,11 +148,25 @@ class Theme {
 			return;
 		}
 		$loc = isset( $_POST['melintir_location'] ) ? sanitize_key( $_POST['melintir_location'] ) : ''; // phpcs:ignore
-		if ( 'header' !== $loc && 'footer' !== $loc ) {
+		if ( 'header' !== $loc && 'footer' !== $loc && 'popup' !== $loc ) {
 			$loc = '';
 		}
 		update_post_meta( $post_id, self::LOC_META, $loc );
 		update_post_meta( $post_id, self::RULE_META, 'entire_site' );
+		$mode = isset( $_POST['melintir_trigger_mode'] ) && 'click' === $_POST['melintir_trigger_mode'] ? 'click' : 'load'; // phpcs:ignore
+		$delay = isset( $_POST['melintir_trigger_delay'] ) ? max( 0, min( 120, intval( $_POST['melintir_trigger_delay'] ) ) ) : 3; // phpcs:ignore
+		$selector = isset( $_POST['melintir_trigger_selector'] ) ? substr( preg_replace( '/[^a-zA-Z0-9_.#\- \[\]=\"\':]/', '', (string) $_POST['melintir_trigger_selector'] ), 0, 200 ) : ''; // phpcs:ignore
+		$frequency = isset( $_POST['melintir_trigger_frequency'] ) && 'session' === $_POST['melintir_trigger_frequency'] ? 'session' : 'always'; // phpcs:ignore
+		update_post_meta(
+			$post_id,
+			'_melintir_trigger',
+			array(
+				'mode'      => $mode,
+				'delay'     => $delay,
+				'selector'  => $selector,
+				'frequency' => $frequency,
+			)
+		);
 	}
 
 	/**
@@ -203,5 +238,33 @@ class Theme {
 			}
 		}
 		return $template;
+	}
+
+	/**
+	 * Inject the assigned popup at wp_footer (entire-site rule).
+	 * Config travels as data-* attributes; frontend.js owns behavior.
+	 */
+	public static function inject_popup() {
+		if ( is_admin() ) {
+			return;
+		}
+		$id = self::assigned( 'popup' );
+		if ( ! $id ) {
+			return;
+		}
+		$mel = Renderer::render_page( $id );
+		if ( '' === $mel ) {
+			return;
+		}
+		$trigger = get_post_meta( $id, '_melintir_trigger', true );
+		$trigger = is_array( $trigger ) ? $trigger : array();
+		$mode      = isset( $trigger['mode'] ) && 'click' === $trigger['mode'] ? 'click' : 'load';
+		$delay     = isset( $trigger['delay'] ) ? max( 0, min( 120, intval( $trigger['delay'] ) ) ) : 3;
+		$selector  = isset( $trigger['selector'] ) ? (string) $trigger['selector'] : '';
+		$frequency = isset( $trigger['frequency'] ) && 'session' === $trigger['frequency'] ? 'session' : 'always';
+		echo '<div class="mel-popup" data-popup="' . esc_attr( (string) $id ) . '" data-mode="' . esc_attr( $mode ) . '" data-delay="' . esc_attr( (string) $delay ) . '" data-selector="' . esc_attr( $selector ) . '" data-frequency="' . esc_attr( $frequency ) . '" hidden>';
+		echo '<div class="mel-popup-backdrop" data-close></div>';
+		echo '<div class="mel-popup-box" role="dialog" aria-modal="true"><button class="mel-popup-x" data-close aria-label="' . esc_attr__( 'Close', 'melintir' ) . '">×</button>' . $mel . '</div>';
+		echo '</div>';
 	}
 }

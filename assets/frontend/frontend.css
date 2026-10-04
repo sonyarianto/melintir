@@ -1,0 +1,10 @@
+/* Melintir frontend base: tabs + popup chrome. Always enqueued (tiny). */
+.mel-tabs-nav{display:flex;gap:8px;margin-bottom:12px}
+.mel-tabs-nav [role="tab"]{border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:6px 12px;cursor:pointer}
+.mel-tabs-nav [aria-selected="true"]{background:#dbeafe;border-color:#2563eb}
+.mel-popup[hidden]{display:none}
+.mel-popup{position:fixed;inset:0;z-index:99999}
+.mel-popup-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.6)}
+.mel-popup-box{position:relative;max-width:560px;margin:10vh auto;background:#fff;border-radius:12px;padding:24px;max-height:80vh;overflow:auto}
+.mel-popup-x{position:absolute;top:8px;right:12px;border:none;background:none;font-size:24px;line-height:1;cursor:pointer}
+body.mel-lock{overflow:hidden}
