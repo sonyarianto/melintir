@@ -29,3 +29,9 @@
 .mel-navigator{max-height:220px;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;padding:4px;margin-bottom:8px}
 .mel-navitem{font-size:12px;padding:3px 6px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mel-navitem:hover{background:#f1f5f9}
+.mel-ctxoverlay{position:fixed;inset:0;z-index:9998}
+.mel-ctxmenu{position:fixed;z-index:9999;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:4px;display:flex;flex-direction:column;min-width:170px;box-shadow:0 8px 24px rgba(15,23,42,.15)}
+.mel-ctxmenu button{border:none;background:none;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+.mel-ctxmenu button:hover{background:#e0f2fe}
+.mel-wooembed{border:1px dashed #cbd5e1;border-radius:6px;padding:12px;color:#64748b;text-align:center}
+details summary{cursor:pointer;font-size:13px;font-weight:600;color:#334155;margin:6px 0}

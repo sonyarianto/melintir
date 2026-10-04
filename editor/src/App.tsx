@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { Fragment, useEffect, useMemo, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { useEditor } from './store';
 import { generateCss, initWasm, isWasm } from './wasm';
 import { DropSlot, PreviewNode, wpApiBase, wpApiUrl, type DndCtx, type WpMenu } from './widgets';
@@ -57,6 +57,7 @@ export default function App() {
   const [dragPayload, setDragPayload] = useState<string | null>(null); // 'move:ID' | 'new:TYPE'
   const [overSlot, setOverSlot] = useState<string | null>(null); // 'parentId:index'
   const [palSearch, setPalSearch] = useState('');
+  const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
   const [patterns, setPatterns] = useState<{ id: string; name: string; node: MelNode }[]>([]);
   const [pname, setPname] = useState('');
@@ -290,6 +291,10 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCtxMenu(null);
+        return;
+      }
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -528,12 +533,33 @@ export default function App() {
           {(doc.root.elements || []).map((n, i) => (
             <Fragment key={n.id}>
               <DropSlot parentId={doc.root.id} index={i} dnd={dnd} />
-              <PreviewNode node={n} selected={n.id === selectedId} selectedId={selectedId} onSelect={setSelected} onInlineEdit={(id, field, value) => updateNode(id, { settings: { [field]: value } })} dnd={dnd} />
+              <PreviewNode node={n} selected={n.id === selectedId} selectedId={selectedId} onSelect={setSelected} onInlineEdit={(id, field, value) => updateNode(id, { settings: { [field]: value } })} onContext={(_id, x, y) => setCtxMenu({ id: _id, x, y })} dnd={dnd} />
             </Fragment>
           ))}
           <DropSlot parentId={doc.root.id} index={(doc.root.elements || []).length} dnd={dnd} />
         </div>
       </main>
+      {ctxMenu && (
+        <>
+          <div
+            className="mel-ctxoverlay"
+            onClick={() => setCtxMenu(null)}
+            onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }}
+          />
+          <div
+            className="mel-ctxmenu"
+            style={{ left: Math.min(ctxMenu.x, window.innerWidth - 190), top: Math.min(ctxMenu.y, window.innerHeight - 280) }}
+          >
+            <button onClick={() => { duplicateSelected(); setCtxMenu(null); }}>❏ Duplicate</button>
+            <button onClick={() => { copySelected(sel); setCtxMenu(null); }}>⧉ Copy</button>
+            <button onClick={() => { copySelected(sel); removeNode(ctxMenu.id); setCtxMenu(null); }}>✂ Cut</button>
+            <button onClick={() => { pasteClipboard(); setCtxMenu(null); }}>📋 Paste</button>
+            <button onClick={() => { nudgeSelected(-1); setCtxMenu(null); }}>↑ Move up</button>
+            <button onClick={() => { nudgeSelected(1); setCtxMenu(null); }}>↓ Move down</button>
+            <button onClick={() => { removeNode(ctxMenu.id); setCtxMenu(null); }}>✕ Delete</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -624,6 +650,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
 
       {node.widgetType === 'text' && (
         <>
+          <FormatBar />
           <Field label="HTML"><textarea rows={5} value={s.html || ''} onChange={(e) => onSetting({ html: e.target.value })} /></Field>
           <TagButtons current={s.html || ''} onPick={(v) => onSetting({ html: v })} />
         </>
@@ -1192,6 +1219,30 @@ function NavItem({ node, depth, selectedId, onSelect }: {
         <NavItem key={c.id} node={c} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />
       ))}
     </>
+  );
+}
+
+/** Bold/italic/underline/link acting on the live canvas text selection.
+ * Buttons use onMouseDown (not onClick) so pressing them never steals the
+ * selection they are meant to format. */
+function FormatBar() {
+  const cmd = (c: string) => (e: ReactMouseEvent) => {
+    e.preventDefault();
+    document.execCommand(c, false);
+  };
+  const link = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    const url = window.prompt('Link URL', 'https://');
+    if (url) document.execCommand('createLink', false, url);
+  };
+  return (
+    <div className="mel-row" onMouseDown={(e) => e.preventDefault()} title="Format selected canvas text">
+      <button title="Bold" onClick={cmd('bold')}><b>B</b></button>
+      <button title="Italic" onClick={cmd('italic')}><i>I</i></button>
+      <button title="Underline" onClick={cmd('underline')}><u>U</u></button>
+      <button title="Link" onClick={link}>🔗</button>
+      <button title="Clear format" onClick={cmd('removeFormat')}>⌫</button>
+    </div>
   );
 }
 

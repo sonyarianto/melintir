@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type DragEvent, type FocusEvent, type KeyboardEvent } from 'react';
+import { Fragment, useEffect, useState, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { MelNode } from './types';
 
 /** Drag-and-drop context threaded from App (absent = static preview). */
@@ -26,14 +26,21 @@ export function DropSlot({ parentId, index, dnd }: { parentId: string; index: nu
   );
 }
 
-export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit, dnd }: {
+export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit, onContext, dnd }: {
   node: MelNode;
   selected: boolean;
   selectedId?: string | null;
   onSelect: (id: string) => void;
   onInlineEdit?: (id: string, field: string, value: string) => void;
+  onContext?: (id: string, x: number, y: number) => void;
   dnd?: DndCtx;
 }) {
+  const contextMenu = (e: ReactMouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(node.id);
+    onContext?.(node.id, e.clientX, e.clientY);
+  };
   const isSel = selected || selectedId === node.id;
   const cls = `mel-${node.id}${isSel ? ' mel-selected' : ''}`;
   const guardEdit = (e: DragEvent) => {
@@ -52,11 +59,12 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
         onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
         onDragEnd={dnd?.onDragEnd}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+        onContextMenu={contextMenu}
       >
         {(node.elements || []).map((c, i) => (
           <Fragment key={c.id}>
             <DropSlot parentId={node.id} index={i} dnd={dnd} />
-            <PreviewNode node={c} selected={false} selectedId={selectedId} onSelect={onSelect} onInlineEdit={onInlineEdit} dnd={dnd} />
+            <PreviewNode node={c} selected={false} selectedId={selectedId} onSelect={onSelect} onInlineEdit={onInlineEdit} onContext={onContext} dnd={dnd} />
           </Fragment>
         ))}
         <DropSlot parentId={node.id} index={(node.elements || []).length} dnd={dnd} />
@@ -72,6 +80,7 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
       onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
       onDragEnd={dnd?.onDragEnd}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+      onContextMenu={contextMenu}
     >{inner}</div>
   );
   /** Plain-text widgets become editable once selected; blur commits. */
@@ -97,7 +106,25 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
       const Tag = (s.tag || 'h2') as any;
       return wrap(<Tag className="mel-heading" {...editable('text', s.text || '', false)}>{s.text}</Tag>);
     }
-    case 'text': return wrap(<div className="mel-text" dangerouslySetInnerHTML={{ __html: s.html || '' }} />);
+    case 'text': {
+      // Rich HTML: editable in place once selected, committed as HTML on blur
+      // (server re-sanitizes via wp_kses_post on save, so pasted markup is safe).
+      if (onInlineEdit && isSel) {
+        return wrap(
+          <div
+            className="mel-text"
+            contentEditable
+            suppressContentEditableWarning
+            dangerouslySetInnerHTML={{ __html: s.html || '' }}
+            onBlur={(e: FocusEvent<HTMLElement>) => {
+              const v = e.currentTarget.innerHTML || '';
+              if (v !== (s.html || '')) onInlineEdit(node.id, 'html', v);
+            }}
+          />
+        );
+      }
+      return wrap(<div className="mel-text" dangerouslySetInnerHTML={{ __html: s.html || '' }} />);
+    }
     case 'image': return wrap(<figure className="mel-image">{s.url ? <img src={s.url} alt={s.alt || ''} loading="lazy" /> : 'No image'}</figure>);
     case 'button': return wrap(<div className="mel-btn-wrap"><span className="mel-btn" {...editable('text', s.text || '', false)}>{s.text}</span></div>);
     case 'video': return wrap(<div className="mel-video">🎬 {s.url || 'No URL'}</div>);
