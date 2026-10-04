@@ -103,7 +103,7 @@ class Rest {
 		if ( $id > 0 ) {
 			return Security::can_edit( $id );
 		}
-		return current_user_can( 'edit_posts' );
+		return Security::can_use_builder();
 	}
 
 	public static function load( \WP_REST_Request $req ) {

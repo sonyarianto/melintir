@@ -34,6 +34,9 @@ class Plugin {
 	}
 
 	public function menu() {
+		if ( ! Security::can_use_builder() ) {
+			return;
+		}
 		add_menu_page(
 			__( 'Melintir', 'melintir' ),
 			__( 'Melintir', 'melintir' ),
@@ -60,6 +63,9 @@ class Plugin {
 		if ( isset( $_POST['melintir_settings_nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['melintir_settings_nonce'] ), 'melintir_settings' ) ) { // phpcs:ignore
 			update_option( 'melintir_turnstile_sitekey', isset( $_POST['turnstile_sitekey'] ) ? sanitize_text_field( wp_unslash( $_POST['turnstile_sitekey'] ) ) : '' ); // phpcs:ignore
 			update_option( 'melintir_turnstile_secret', isset( $_POST['turnstile_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['turnstile_secret'] ) ) : '' ); // phpcs:ignore
+			$posted_roles = isset( $_POST['melintir_roles'] ) && is_array( $_POST['melintir_roles'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['melintir_roles'] ) ) : array(); // phpcs:ignore
+			$known_roles  = function_exists( 'get_editable_roles' ) ? array_keys( get_editable_roles() ) : array();
+			update_option( Security::ROLES_OPTION, array_values( array_intersect( $posted_roles, $known_roles ) ) );
 			echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved.', 'melintir' ) . '</p></div>';
 		}
 		$sitekey = get_option( 'melintir_turnstile_sitekey', '' );
@@ -70,11 +76,33 @@ class Plugin {
 		echo '<table class="form-table"><tr><th>' . esc_html__( 'Turnstile site key', 'melintir' ) . '</th><td><input type="text" name="turnstile_sitekey" value="' . esc_attr( $sitekey ) . '" class="regular-text" /></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Turnstile secret key', 'melintir' ) . '</th><td><input type="password" name="turnstile_secret" value="' . esc_attr( $secret ) . '" class="regular-text" autocomplete="new-password" /></td></tr></table>';
 		echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile keys. Per-form opt-in lives in the form widget inspector. Empty keys = Turnstile off.', 'melintir' ) . '</p>';
+		echo '<h2>' . esc_html__( 'Builder access', 'melintir' ) . '</h2>';
+		$all_roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : array();
+		$saved_roles = get_option( Security::ROLES_OPTION, null );
+		if ( ! is_array( $saved_roles ) ) {
+			// First run: mirror the historical behavior (everyone with edit_posts).
+			$saved_roles = array();
+			foreach ( $all_roles as $slug => $details ) {
+				if ( ! empty( $details['capabilities']['edit_posts'] ) ) {
+					$saved_roles[] = $slug;
+				}
+			}
+		}
+		echo '<table class="form-table"><tr><th>' . esc_html__( 'Allowed roles', 'melintir' ) . '</th><td>';
+		foreach ( $all_roles as $slug => $details ) {
+			$label = isset( $details['name'] ) ? $details['name'] : $slug;
+			echo '<label style="display:block;margin-bottom:4px;"><input type="checkbox" name="melintir_roles[]" value="' . esc_attr( $slug ) . '"' . checked( in_array( $slug, $saved_roles, true ), true, false ) . ' /> ' . esc_html( $label ) . '</label>';
+		}
+		echo '</td></tr></table>';
+		echo '<p class="description">' . esc_html__( 'Who sees the Melintir menu and can use the builder. Administrators always keep access. Empty selection = anyone with edit_posts (WordPress default).', 'melintir' ) . '</p>';
 		submit_button();
 		echo '</form></div>';
 	}
 
 	public function admin_page() {
+		if ( ! Security::can_use_builder() ) {
+			wp_die( esc_html__( 'You are not allowed to use the Melintir builder.', 'melintir' ) );
+		}
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore
 		if ( $post_id && ! Security::can_edit( $post_id ) ) {
 			wp_die( esc_html__( 'You cannot edit this post.', 'melintir' ) );

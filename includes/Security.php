@@ -30,11 +30,42 @@ class Security {
 		'handwriting'   => "'Comic Sans MS', 'Chalkboard SE', cursive",
 	);
 
+	const ROLES_OPTION = 'melintir_allowed_roles';
+
+	/**
+	 * Role gate for the whole builder (editor screen, templates, patterns,
+	 * row actions). Administrators (manage_options) always pass so a
+	 * misconfiguration can never lock out Settings. Empty allow-list means
+	 * the historical behavior: anyone with edit_posts.
+	 *
+	 * @return bool
+	 */
+	public static function can_use_builder() {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		$allowed = get_option( self::ROLES_OPTION, null );
+		if ( ! is_array( $allowed ) || empty( $allowed ) ) {
+			return current_user_can( 'edit_posts' );
+		}
+		$user = function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : null;
+		$roles = ( $user && isset( $user->roles ) && is_array( $user->roles ) ) ? $user->roles : array();
+		foreach ( $roles as $role ) {
+			if ( in_array( (string) $role, $allowed, true ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * @param int $post_id
 	 * @return bool
 	 */
 	public static function can_edit( $post_id ) {
+		if ( ! self::can_use_builder() ) {
+			return false;
+		}
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return false;

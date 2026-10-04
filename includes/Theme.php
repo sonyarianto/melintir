@@ -79,7 +79,7 @@ class Theme {
 	 * (The editor itself is post-ID generic, so no editor changes needed.)
 	 */
 	public static function edit_page() {
-		if ( ! current_user_can( 'edit_posts' ) ) {
+		if ( ! Security::can_use_builder() ) {
 			wp_die( esc_html__( 'You cannot edit templates.', 'melintir' ) );
 		}
 		$templates = get_posts(
