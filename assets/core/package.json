@@ -1,0 +1,16 @@
+{
+  "name": "melintir-core",
+  "type": "module",
+  "description": "Melintir WASM brain: document model, CSS gen, validation",
+  "version": "0.1.0",
+  "files": [
+    "melintir-core_bg.wasm",
+    "melintir-core.js",
+    "melintir-core.d.ts"
+  ],
+  "main": "melintir-core.js",
+  "types": "melintir-core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

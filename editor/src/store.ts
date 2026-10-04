@@ -1,0 +1,75 @@
+import { create } from 'zustand';
+import { blankDoc, uid, type MelDoc, type MelNode, type WidgetType } from './types';
+
+interface EditorState {
+  doc: MelDoc;
+  selectedId: string | null;
+  past: string[];
+  future: string[];
+  dirty: boolean;
+  setSelected: (id: string | null) => void;
+  addWidget: (type: WidgetType) => void;
+  updateNode: (id: string, patch: Partial<MelNode>) => void;
+  removeNode: (id: string) => void;
+  undo: () => void;
+  redo: () => void;
+  load: (doc: MelDoc) => void;
+}
+
+const snap = (doc: MelDoc) => JSON.stringify(doc);
+
+function mapNode(n: MelNode, id: string, fn: (n: MelNode) => MelNode | null): MelNode | null {
+  if (n.id === id) return fn(n);
+  return { ...n, elements: n.elements.map((c) => mapNode(c, id, fn)).filter(Boolean) as MelNode[] };
+}
+
+function defaults(type: WidgetType): Partial<MelNode> {
+  switch (type) {
+    case 'heading': return { settings: { text: 'New heading', tag: 'h2' }, style: { typo: { size: 32, weight: 700 } } };
+    case 'text': return { settings: { html: '<p>New text</p>' }, style: {} };
+    case 'image': return { settings: { url: 'https://picsum.photos/800/450', alt: '' }, style: {} };
+    case 'button': return { settings: { text: 'Click me', url: '#' }, style: {} };
+    case 'video': return { settings: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, style: {} };
+    case 'divider': return { settings: {}, style: {} };
+    case 'spacer': return { settings: {}, style: { layout: { padding: 24 } as any } };
+    case 'icon-box': return { settings: { title: 'Feature', desc: 'Description', icon: 'star' }, style: {} };
+    case 'tabs': return { settings: { tabs: [{ title: 'Tab 1', content: 'Content 1' }, { title: 'Tab 2', content: 'Content 2' }] }, style: {} };
+  }
+}
+
+export const useEditor = create<EditorState>((set, get) => ({
+  doc: blankDoc(),
+  selectedId: null,
+  past: [],
+  future: [],
+  dirty: false,
+  setSelected: (selectedId) => set({ selectedId }),
+  addWidget: (type) =>
+    set((s) => {
+      const d = defaults(type);
+      const node: MelNode = { id: uid(), elType: 'widget', widgetType: type, settings: d.settings || {}, style: (d.style as any) || {}, elements: [] };
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: node.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, node] } } };
+    }),
+  updateNode: (id, patch) =>
+    set((s) => {
+      const root = mapNode(s.doc.root, id, (n) => ({ ...n, ...patch, style: { ...n.style, ...(patch.style || {}) }, settings: { ...n.settings, ...(patch.settings || {}) } }));
+      if (!root) return s;
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, doc: { ...s.doc, root } };
+    }),
+  removeNode: (id) =>
+    set((s) => {
+      const prune = (n: MelNode): MelNode => ({ ...n, elements: n.elements.filter((c) => c.id !== id).map(prune) });
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: null, doc: { ...s.doc, root: prune(s.doc.root) } };
+    }),
+  undo: () => set((s) => {
+    if (!s.past.length) return s;
+    const prev = s.past[s.past.length - 1];
+    return { doc: JSON.parse(prev), past: s.past.slice(0, -1), future: [snap(s.doc), ...s.future], dirty: true };
+  }),
+  redo: () => set((s) => {
+    if (!s.future.length) return s;
+    const [next, ...rest] = s.future;
+    return { doc: JSON.parse(next), past: [...s.past, snap(s.doc)], future: rest, dirty: true };
+  }),
+  load: (doc) => set({ doc, past: [], future: [], dirty: false, selectedId: null }),
+}));

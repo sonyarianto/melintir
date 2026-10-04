@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "root": {
+    "id": "root",
+    "elType": "container",
+    "settings": {},
+    "style": { "layout": { "direction": "column", "gap": 20 } },
+    "elements": [
+      {
+        "id": "hero",
+        "elType": "container",
+        "settings": {},
+        "style": { "layout": { "direction": "column", "gap": 12, "padding": 48, "radius": 16, "bg": "#f8fafc" } },
+        "elements": [
+          { "id": "h1", "elType": "widget", "widgetType": "heading", "settings": { "text": "Melintir is fast", "tag": "h1" }, "style": { "typo": { "size": 56, "weight": 800, "color": "#0f172a" } }, "elements": [] },
+          { "id": "p1", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Open-source page builder with a Rust/WASM brain.</p>" }, "style": {}, "elements": [] },
+          { "id": "b1", "elType": "widget", "widgetType": "button", "settings": { "text": "Get started", "url": "#" }, "style": {}, "elements": [] }
+        ]
+      }
+    ]
+  },
+  "globals": {
+    "colors": { "primary": "#2563eb", "text": "#0f172a" },
+    "breakpoints": { "tablet": 1024, "mobile": 767 }
+  }
+}

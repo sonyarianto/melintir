@@ -1,0 +1,40 @@
+import type { MelDoc } from './types';
+
+/**
+ * JS mirror of core/css.rs + Renderer.php. Used until WASM loads,
+ * and as fallback if .wasm 404s (e.g. not built yet).
+ */
+export function generateCssFallback(doc: MelDoc): string {
+  let out = '.mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n';
+  const walk = (n: any) => {
+    const sel = `.mel-${String(n.id).replace(/[^a-zA-Z0-9_-]/g, '')}`;
+    const decl = decls(n.style || {});
+    if (decl) out += `${sel}{${decl}}\n`;
+    for (const [bp, max] of [['tablet', 1024], ['mobile', 767]] as const) {
+      const s = n.style?.[bp] || n.style?.responsive?.[bp];
+      if (s) {
+        const d = decls(s);
+        if (d) out += `@media(max-width:${max}px){${sel}{${d}}}\n`;
+      }
+    }
+    (n.elements || []).forEach(walk);
+  };
+  const decls = (s: any) => {
+    let d = '';
+    const l = s.layout || {};
+    if (l.direction === 'row' || l.direction === 'column') d += `flex-direction:${l.direction};`;
+    if (l.gap != null) d += `gap:${l.gap | 0}px;`;
+    if (l.justify) d += `justify-content:${l.justify};`;
+    if (l.align) d += `align-items:${l.align};`;
+    if (l.bg) d += `background:${l.bg};`;
+    if (l.padding != null) d += `padding:${l.padding | 0}px;`;
+    if (l.radius != null) d += `border-radius:${l.radius | 0}px;`;
+    const t = s.typo || {};
+    if (t.size != null) d += `font-size:${t.size | 0}px;`;
+    if (t.weight != null) d += `font-weight:${t.weight | 0};`;
+    if (t.color) d += `color:${t.color};`;
+    return d;
+  };
+  walk(doc.root);
+  return out.slice(0, 100 * 1024);
+}

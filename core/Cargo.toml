@@ -1,0 +1,16 @@
+[package]
+name = "melintir-core"
+version = "0.1.0"
+edition = "2021"
+description = "Melintir WASM brain: document model, CSS gen, validation"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

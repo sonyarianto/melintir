@@ -1,0 +1,111 @@
+use crate::document::{Document, Node, Style};
+
+/// Must stay in sync with includes/Renderer.php + editor/src/cssFallback.ts
+/// Selector: .mel-{id}
+pub fn generate_css(doc: &Document) -> String {
+    let mut out = String::from(".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n");
+    node_css(&doc.root, &mut out);
+    if out.len() > 100 * 1024 {
+        out.truncate(100 * 1024);
+    }
+    out
+}
+
+fn node_css(node: &Node, out: &mut String) {
+    let sel = format!(".mel-{}", sanitize_id(&node.id));
+    let decl = style_decls(&node.style);
+    if !decl.is_empty() {
+        out.push_str(&sel);
+        out.push('{');
+        out.push_str(&decl);
+        out.push_str("}\n");
+    }
+    // v0.1 supports both `tablet`/`mobile` top-level and `responsive.tablet`.
+    let bps = [("tablet", 1024, breakpoint_style(&node.style, "tablet")), ("mobile", 767, breakpoint_style(&node.style, "mobile"))];
+    for (_, max, bp) in bps {
+        if let Some(s) = bp {
+            let d = style_decls(s);
+            if !d.is_empty() {
+                out.push_str(&format!("@media(max-width:{max}px){{{sel}{{{d}}}}}\n"));
+            }
+        }
+    }
+    for child in &node.elements {
+        node_css(child, out);
+    }
+}
+
+fn breakpoint_style<'a>(style: &'a Style, bp: &str) -> Option<&'a Style> {
+    match bp {
+        "tablet" => style.tablet.as_deref().or_else(|| style.responsive.get("tablet").map(|b| b.as_ref())),
+        "mobile" => style.mobile.as_deref().or_else(|| style.responsive.get("mobile").map(|b| b.as_ref())),
+        _ => style.responsive.get(bp).map(|b| b.as_ref()),
+    }
+}
+
+fn style_decls(style: &Style) -> String {
+    let mut d = String::new();
+    if let Some(v) = style.layout.get("direction").and_then(|v| v.as_str()) {
+        if v == "row" || v == "column" {
+            d.push_str(&format!("flex-direction:{v};"));
+        }
+    }
+    if let Some(v) = num(&style.layout, "gap") {
+        d.push_str(&format!("gap:{v}px;"));
+    }
+    if let Some(v) = style.layout.get("justify").and_then(|v| v.as_str()) {
+        d.push_str(&format!("justify-content:{v};"));
+    }
+    if let Some(v) = style.layout.get("align").and_then(|v| v.as_str()) {
+        d.push_str(&format!("align-items:{v};"));
+    }
+    if let Some(v) = style.layout.get("bg").and_then(|v| v.as_str()) {
+        if !v.is_empty() {
+            d.push_str(&format!("background:{v};"));
+        }
+    }
+    if let Some(v) = num(&style.layout, "padding") {
+        d.push_str(&format!("padding:{v}px;"));
+    }
+    if let Some(v) = num(&style.layout, "radius") {
+        d.push_str(&format!("border-radius:{v}px;"));
+    }
+    if let Some(v) = num(&style.typo, "size") {
+        d.push_str(&format!("font-size:{v}px;"));
+    }
+    if let Some(v) = num(&style.typo, "weight") {
+        d.push_str(&format!("font-weight:{v};"));
+    }
+    if let Some(v) = style.typo.get("color").and_then(|v| v.as_str()) {
+        if !v.is_empty() {
+            d.push_str(&format!("color:{v};"));
+        }
+    }
+    d
+}
+
+fn num(map: &std::collections::HashMap<String, serde_json::Value>, key: &str) -> Option<i64> {
+    map.get(key).and_then(|v| v.as_i64().or_else(|| v.as_u64().map(|n| n as i64)))
+}
+
+fn sanitize_id(id: &str) -> String {
+    id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(32).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn heading_css() {
+        let doc: Document = serde_json::from_value(serde_json::json!({
+            "version": "0.1.0",
+            "root": {"id":"c001","elType":"container","settings":{},"style":{"layout":{"direction":"column","gap":16}},"elements":[
+                {"id":"w001","elType":"widget","widgetType":"heading","settings":{"text":"Hi"},"style":{"typo":{"size":48,"weight":700}},"elements":[]}
+            ]}
+        }))
+        .unwrap();
+        let css = generate_css(&doc);
+        assert!(css.contains(".mel-w001{"));
+        assert!(css.contains("font-size:48px"));
+    }
+}

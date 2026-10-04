@@ -1,0 +1,5 @@
+node_modules/
+editor/node_modules/
+core/target/
+.DS_Store
+*.log
