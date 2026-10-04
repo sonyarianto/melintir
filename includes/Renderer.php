@@ -650,6 +650,16 @@ class Renderer {
 		if ( ! $product || ! $product->is_purchasable() || ! $product->is_in_stock() ) {
 			return '';
 		}
+		// Variable products get Woo's own variation form (attribute dropdowns,
+		// quantity, variation JSON), so Woo's scripts enhance it natively and
+		// new Woo versions keep working without Melintir changes.
+		if ( 'variable' === $product->get_type() && function_exists( 'woocommerce_template_single_add_to_cart' ) ) {
+			$GLOBALS['product'] = $product;
+			ob_start();
+			woocommerce_template_single_add_to_cart();
+			$form = ob_get_clean();
+			return '<div class="' . esc_attr( $cls ) . '">' . $form . '</div>';
+		}
 		if ( 'simple' === $product->get_type() && $product->supports( 'ajax_add_to_cart' ) ) {
 			return '<a href="' . esc_url( $product->add_to_cart_url() ) . '" data-quantity="1" class="mel-addcart add_to_cart_button ajax_add_to_cart ' . esc_attr( $cls ) . '" data-product_id="' . esc_attr( (string) $product->get_id() ) . '" data-product_sku="' . esc_attr( $product->get_sku() ) . '">' . esc_html( $product->add_to_cart_text() ) . '</a>';
 		}
