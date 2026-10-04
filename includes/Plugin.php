@@ -148,6 +148,7 @@ class Plugin {
 			'MelintirData',
 			array(
 				'postId'  => $post_id,
+				'version' => MELINTIR_VERSION,
 				'restUrl' => esc_url_raw( rest_url( 'melintir/v1/post/' . $post_id ) ),
 				'templatesUrl' => esc_url_raw( rest_url( 'melintir/v1/templates' ) ),
 				'patternsUrl' => esc_url_raw( rest_url( 'melintir/v1/patterns' ) ),

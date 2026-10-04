@@ -12,6 +12,7 @@ interface EditorState {
   addWidget: (type: WidgetType) => void;
   addWidgetAt: (type: WidgetType, parentId: string, index: number) => boolean;
   insertNode: (node: MelNode) => void;
+  duplicateSelected: () => void;
   moveNode: (dragId: string, parentId: string, index: number) => boolean;
   nudgeSelected: (dir: -1 | 1) => void;
   updateNode: (id: string, patch: Partial<MelNode>) => void;
@@ -23,6 +24,9 @@ interface EditorState {
 }
 
 const snap = (doc: MelDoc) => JSON.stringify(doc);
+
+/** Deep copy with fresh ids, so pastes/duplicates never collide. */
+const remapIds = (n: MelNode): MelNode => ({ ...n, id: uid(), elements: (n.elements || []).map(remapIds) });
 
 function mapNode(n: MelNode, id: string, fn: (n: MelNode) => MelNode | null): MelNode | null {
   if (n.id === id) return fn(n);
@@ -138,10 +142,20 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   insertNode: (node) =>
     set((s) => {
-      const remap = (n: MelNode): MelNode => ({ ...n, id: uid(), elements: (n.elements || []).map(remap) });
-      const copy = remap(node);
+      const copy = remapIds(node);
       return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, copy] } } };
     }),
+  duplicateSelected: () => {
+    const { doc, selectedId } = get();
+    if (!selectedId) return;
+    const slot = siblingSlot(doc.root, selectedId);
+    const node = slot ? slot.parent.elements[slot.index] : null;
+    if (!slot || !node) return;
+    const copy = remapIds(node);
+    const root = insertAt(doc.root, slot.parent.id, slot.index + 1, copy);
+    if (!root) return;
+    set((s) => ({ past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root } }));
+  },
   moveNode: (dragId, parentId, index) => {
     let ok = false;
     set((s) => {

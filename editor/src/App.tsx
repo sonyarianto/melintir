@@ -41,7 +41,7 @@ function Num({ value, onChange }: { value: number | undefined; onChange: (v: num
 }
 
 export default function App() {
-  const { doc, selectedId, setSelected, addWidget, addWidgetAt, insertNode, moveNode, nudgeSelected, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
+  const { doc, selectedId, setSelected, addWidget, addWidgetAt, insertNode, duplicateSelected, moveNode, nudgeSelected, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
   const [wasmOk, setWasmOk] = useState(false);
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
@@ -385,7 +385,7 @@ export default function App() {
     <div className="mel-app">
       <style>{css}</style>
       <aside className="mel-panel">
-        <h3>Melintir v0.3 {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
+        <h3>Melintir v{(window as any).MelintirData?.version || 'dev'} {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
         <div className="mel-row">
           <button onClick={undo}>↩</button>
           <button onClick={redo}>↪</button>
@@ -489,6 +489,7 @@ export default function App() {
             onSetting={(p) => setSetting(sel, p)}
             onRemove={() => removeNode(sel.id)}
             onCopy={() => copySelected(sel)}
+            onDuplicate={() => duplicateSelected()}
             onUp={() => nudgeSelected(-1)}
             onDown={() => nudgeSelected(1)}
           />
@@ -509,7 +510,7 @@ export default function App() {
   );
 }
 
-function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onUp, onDown }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onDuplicate, onUp, onDown }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
@@ -518,6 +519,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
   onSetting: (p: Record<string, any>) => void;
   onRemove: () => void;
   onCopy: () => void;
+  onDuplicate: () => void;
   onUp: () => void;
   onDown: () => void;
 }) {
@@ -532,6 +534,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
         <button title="Move up" onClick={onUp}>↑</button>
         <button title="Move down" onClick={onDown}>↓</button>
         <button title="Copy block (Ctrl+C)" onClick={onCopy}>⧉</button>
+        <button title="Duplicate (insert copy below)" onClick={onDuplicate}>❏</button>
         <button onClick={onRemove}>✕</button>
       </h4>
 
