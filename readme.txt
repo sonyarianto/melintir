@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.10.0:
+What you get in 0.11.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -26,6 +26,11 @@ What you get in 0.10.0:
   Price Table, Social, Star Rating — plus per-node custom CSS.
 * Single Product + Product Archive template takeover with display rules.
 * Drag-and-drop canvas editing with navigator outline.
+* Inline text editing (heading/button plain, text-widget rich HTML with
+  format bar), right-click context menu, categorized searchable palette,
+  one-click duplicate, nested selection highlight.
+* Entry points everywhere: Pages row actions, admin-bar shortcut,
+  edit-screen notice (Gutenberg + Classic).
 * Gutenberg block to embed templates inside block/FSE content.
 * Block copy-paste across pages (OS clipboard, Ctrl+C / Ctrl+V).
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
@@ -88,6 +93,14 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.11.0 =
+* Editor-feel release: inline text editing (plain + rich HTML with format
+  bar), right-click context menu (duplicate/copy/cut/paste/reorder/
+  delete), categorized searchable palette, nested selection highlight,
+  one-click duplicate, live version header.
+* Entry points everywhere: Pages row actions fixed, admin-bar shortcut,
+  edit-screen notice for Gutenberg and Classic.
 
 = 0.10.0 =
 * Theme.json bridge: one-click import of the active theme palette into
