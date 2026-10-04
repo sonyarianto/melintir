@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.3.0:
+What you get in 0.4.0:
 
 * 16 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -31,6 +31,9 @@ What you get in 0.3.0:
   CSV entry export.
 * Dynamic tags resolved at render time; global color palette
   (`var(--mel-*)` refs) and global font tokens with curated stacks.
+* Saved patterns: store any block as a reusable pattern, re-insert
+  anywhere as a copy (Global widgets slice 1).
+* Role manager: restrict builder access by role in Melintir → Settings.
 * Visitor frontend is plain HTML + cached CSS + ~1KB of JS.
   No WASM, no jQuery, no editor runtime on the public site.
 
@@ -75,6 +78,13 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.4.0 =
+* Saved patterns (Global widgets slice 1): save any block as a reusable
+  pattern, insert anywhere as a fresh-ID copy. Same sanitizer pipeline,
+  max 50 patterns, verified end-to-end in Docker.
+* Role manager: `melintir_allowed_roles` option + Settings UI; admins
+  always keep access, empty = anyone with `edit_posts`.
 
 = 0.3.0 =
 * Nav menu widget with CSS-only mobile toggle.
