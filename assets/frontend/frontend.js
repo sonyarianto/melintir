@@ -1,6 +1,7 @@
 /**
- * Melintir frontend (<30KB budget, currently ~1KB).
- * Only interactive widgets need JS: tabs. Everything else is HTML+CSS.
+ * Melintir frontend (<30KB budget, currently ~3.5KB).
+ * Only interactive widgets need JS: tabs, popups, counters.
+ * Everything else is HTML+CSS.
  */
 (function () {
   document.querySelectorAll('[data-tabs]').forEach(function (root) {

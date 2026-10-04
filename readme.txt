@@ -39,7 +39,7 @@ What you get in 0.7.0:
 * Role manager: restrict builder access by role in Melintir → Settings.
 * Woo lite slice 1: Products grid with live Store-API preview, sale
   badges, ratings, prices and add-to-cart (needs WooCommerce).
-* Visitor frontend is plain HTML + cached CSS + ~1KB of JS.
+* Visitor frontend is plain HTML + cached CSS + ~4KB of JS+CSS.
   No WASM, no jQuery, no editor runtime on the public site.
 
 == Installation ==
@@ -58,7 +58,9 @@ instantly. Visitors receive plain HTML + CSS.
 
 = How is this faster than Elementor? =
 Container-only layout (no legacy section/column wrappers), a single CSS
-file per page cached in postmeta, and a frontend script under 1KB.
+file per page cached in postmeta, and a frontend payload under 8KB
+(script + base CSS + per-page CSS, measured; 500-node stress doc
+generates 43KB CSS in under 2ms server-side, capped at 100KB).
 The editor never loads on the public site.
 
 = Can I migrate from Elementor? =
