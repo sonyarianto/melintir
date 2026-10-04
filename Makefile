@@ -16,4 +16,7 @@ check:
 	php -l includes/Renderer.php
 	php -l includes/Rest.php
 	php -l includes/Security.php
+	php -l includes/Form.php
+	php -l includes/Theme.php
+	php -l includes/Migrator.php
 	cargo test --manifest-path core/Cargo.toml

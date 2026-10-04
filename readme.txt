@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,11 +17,11 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.2.0:
+What you get in 0.3.0:
 
-* 19 content widgets: Container, Heading, Text, Image, Button, Video,
-  Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
-  Counter, Testimonial — plus per-node custom CSS.
+* 16 content widgets + Container layout: Heading, Text, Image, Button,
+  Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
+  Counter, Testimonial, Nav — plus per-node custom CSS.
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
 * Undo/redo, autosave with 5-revision history and undo-safe restore.
 * Starter templates, JSON import/export, Elementor migrator (WP-CLI + REST).
@@ -29,6 +29,8 @@ What you get in 0.2.0:
   swap, display conditions, shortcodes, popup builder (lite).
 * Form upgrades: per-form recipients, Turnstile, spam-check filter,
   CSV entry export.
+* Dynamic tags resolved at render time; global color palette
+  (`var(--mel-*)` refs) and global font tokens with curated stacks.
 * Visitor frontend is plain HTML + cached CSS + ~1KB of JS.
   No WASM, no jQuery, no editor runtime on the public site.
 
@@ -73,6 +75,14 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.3.0 =
+* Nav menu widget with CSS-only mobile toggle.
+* Dynamic tags resolved at render time.
+* Global color palette with `var(--mel-*)` refs; tolerate PHP
+  empty-array JSON in WASM.
+* Global font tokens with curated stacks (system-sans/serif/mono,
+  display, handwriting) wired to `typo.family` via font picker.
 
 = 0.2.0 =
 * 8 new widgets: Loop (live wp/v2 preview), Accordion, Gallery,
