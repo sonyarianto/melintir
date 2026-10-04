@@ -485,4 +485,25 @@ class Security {
 		}
 		return $out;
 	}
+
+	/**
+	 * Sanitize a single saved-pattern node (any container or widget subtree).
+	 * Reuses the document node pipeline so patterns can never smuggle in
+	 * disallowed widgets, tags, or oversized subtrees.
+	 *
+	 * @param mixed $node
+	 * @return array [clean_node|null, errors]
+	 */
+	public static function sanitize_pattern_node( $node ) {
+		$errors = array();
+		$count  = array( 'n' => 0 );
+		$clean  = self::sanitize_node( $node, 0, $count, $errors );
+		if ( null === $clean ) {
+			return array( null, $errors ? $errors : array( 'invalid pattern node' ) );
+		}
+		if ( $count['n'] > 200 ) {
+			return array( null, array( 'pattern too large (max 200 nodes)' ) );
+		}
+		return array( $clean, $errors );
+	}
 }

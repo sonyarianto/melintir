@@ -9,6 +9,7 @@ interface EditorState {
   dirty: boolean;
   setSelected: (id: string | null) => void;
   addWidget: (type: WidgetType) => void;
+  insertNode: (node: MelNode) => void;
   updateNode: (id: string, patch: Partial<MelNode>) => void;
   removeNode: (id: string) => void;
   undo: () => void;
@@ -83,6 +84,12 @@ export const useEditor = create<EditorState>((set, get) => ({
       const d = defaults(type);
       const node: MelNode = { id: uid(), elType: 'widget', widgetType: type, settings: d.settings || {}, style: (d.style as any) || {}, elements: [] };
       return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: node.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, node] } } };
+    }),
+  insertNode: (node) =>
+    set((s) => {
+      const remap = (n: MelNode): MelNode => ({ ...n, id: uid(), elements: (n.elements || []).map(remap) });
+      const copy = remap(node);
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, copy] } } };
     }),
   updateNode: (id, patch) =>
     set((s) => {

@@ -121,6 +121,7 @@ class Plugin {
 				'postId'  => $post_id,
 				'restUrl' => esc_url_raw( rest_url( 'melintir/v1/post/' . $post_id ) ),
 				'templatesUrl' => esc_url_raw( rest_url( 'melintir/v1/templates' ) ),
+				'patternsUrl' => esc_url_raw( rest_url( 'melintir/v1/patterns' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
 				'wasmUrl' => esc_url_raw( MELINTIR_URL . 'assets/core/melintir-core_bg.wasm' ),
 				'wasmJs'  => esc_url_raw( MELINTIR_URL . 'assets/core/melintir-core.js' ),

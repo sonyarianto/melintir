@@ -41,12 +41,14 @@ function Num({ value, onChange }: { value: number | undefined; onChange: (v: num
 }
 
 export default function App() {
-  const { doc, selectedId, setSelected, addWidget, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
+  const { doc, selectedId, setSelected, addWidget, insertNode, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
   const [wasmOk, setWasmOk] = useState(false);
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
   const [bp, setBp] = useState<BP>('desktop');
   const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
+  const [patterns, setPatterns] = useState<{ id: string; name: string; node: MelNode }[]>([]);
+  const [pname, setPname] = useState('');
   const [history, setHistory] = useState<{ autosave: { ts: number } | null; revisions: { ts: number }[] }>({ autosave: null, revisions: [] });
 
   useEffect(() => {
@@ -73,8 +75,58 @@ export default function App() {
         .then((j) => Array.isArray(j) && setTemplates(j))
         .catch(() => {});
     }
+    if (d?.patternsUrl) {
+      fetch(d.patternsUrl, { headers: { 'X-WP-Nonce': d.nonce } })
+        .then((r) => r.json())
+        .then((j) => Array.isArray(j) && setPatterns(j))
+        .catch(() => {});
+    }
     refreshHistory();
   }, []);
+
+  const refreshPatterns = async () => {
+    const d: any = (window as any).MelintirData;
+    if (!d?.patternsUrl) return;
+    try {
+      const r = await fetch(d.patternsUrl, { headers: { 'X-WP-Nonce': d.nonce } });
+      const j = await r.json();
+      if (Array.isArray(j)) setPatterns(j);
+    } catch { /* offline */ }
+  };
+
+  const savePattern = async (node: MelNode | null) => {
+    const d: any = (window as any).MelintirData;
+    if (!d?.patternsUrl || !node) return;
+    const fallback = node.widgetType || node.elType;
+    const name = pname.trim() || `${fallback}`;
+    try {
+      const r = await fetch(d.patternsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': d.nonce },
+        body: JSON.stringify({ name, node }),
+      });
+      const j = await r.json();
+      if (j?.ok) {
+        setPname('');
+        setStatus(`pattern saved: ${name}`);
+        refreshPatterns();
+      } else setStatus(`pattern save failed: ${JSON.stringify(j)}`);
+    } catch (e: any) {
+      setStatus('pattern save failed: ' + e.message);
+    }
+  };
+
+  const deletePattern = async (id: string) => {
+    const d: any = (window as any).MelintirData;
+    if (!d?.patternsUrl) return;
+    try {
+      await fetch(`${d.patternsUrl}/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { 'X-WP-Nonce': d.nonce },
+      });
+      refreshPatterns();
+    } catch { /* offline */ }
+  };
 
   const { css, ms } = useMemo(() => generateCss(doc), [doc, wasmOk]);
 
@@ -218,7 +270,7 @@ export default function App() {
     <div className="mel-app">
       <style>{css}</style>
       <aside className="mel-panel">
-        <h3>Melintir v0.2 {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
+        <h3>Melintir v0.3 {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
         <div className="mel-row">
           <button onClick={undo}>↩</button>
           <button onClick={redo}>↪</button>
@@ -262,6 +314,25 @@ export default function App() {
               <button key={t.name} title="Replace canvas with this template" onClick={() => { load(t.doc); setStatus(`template: ${t.name}`); }}>
                 {t.name}
               </button>
+            ))}
+          </div>
+        )}
+        <h4>Patterns</h4>
+        <p className="mel-status">select a block, save it, re-insert anywhere as a copy.</p>
+        <div className="mel-row">
+          <input placeholder="pattern name" value={pname} onChange={(e) => setPname(e.target.value)} />
+          <button disabled={!sel} title={sel ? `Save ${sel.widgetType || sel.elType} as pattern` : 'Select a block first'} onClick={() => savePattern(sel)}>
+            Save selected
+          </button>
+        </div>
+        {patterns.length > 0 && (
+          <div className="mel-history">
+            {patterns.map((p) => (
+              <div key={p.id} className="mel-row">
+                <span className="mel-status">{p.name}</span>
+                <button onClick={() => { insertNode(p.node); setStatus(`inserted: ${p.name}`); }}>Insert</button>
+                <button onClick={() => deletePattern(p.id)}>✕</button>
+              </div>
             ))}
           </div>
         )}

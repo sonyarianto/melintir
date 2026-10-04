@@ -69,6 +69,33 @@ class Rest {
 				'permission_callback' => array( __CLASS__, 'can_edit' ),
 			)
 		);
+		register_rest_route(
+			'melintir/v1',
+			'/patterns',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'patterns_list' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
+		register_rest_route(
+			'melintir/v1',
+			'/patterns',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'patterns_save' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
+		register_rest_route(
+			'melintir/v1',
+			'/patterns/(?P<pid>[a-zA-Z0-9_-]+)',
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( __CLASS__, 'patterns_delete' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
 	}
 
 	public static function can_edit( \WP_REST_Request $req ) {
@@ -212,6 +239,80 @@ class Rest {
 				'revisions' => $list,
 			)
 		);
+	}
+
+	const PATTERNS_OPTION = 'melintir_patterns';
+	const MAX_PATTERNS  = 50;
+
+	/**
+	 * Saved patterns (Global widgets slice 1: unsynced copy library).
+	 * A pattern is one sanitized node subtree; insert expands it as a
+	 * fresh-ID copy, so no renderer changes and no sync invalidation.
+	 * Patterns persist in an option (kept on uninstall, like page data).
+	 */
+	public static function patterns_list() {
+		$all = get_option( self::PATTERNS_OPTION, array() );
+		return rest_ensure_response( is_array( $all ) ? array_values( $all ) : array() );
+	}
+
+	public static function patterns_save( \WP_REST_Request $req ) {
+		$params = $req->get_json_params();
+		$params = is_array( $params ) ? $params : array();
+		$name   = isset( $params['name'] ) ? substr( sanitize_text_field( (string) $params['name'] ), 0, 60 ) : '';
+		if ( '' === $name ) {
+			return new \WP_Error( 'invalid', 'Pattern name is required', array( 'status' => 400 ) );
+		}
+		if ( ! isset( $params['node'] ) || ! is_array( $params['node'] ) ) {
+			return new \WP_Error( 'invalid', 'Pattern node is required', array( 'status' => 400 ) );
+		}
+		list( $clean, $errors ) = Security::sanitize_pattern_node( $params['node'] );
+		if ( null === $clean ) {
+			return new \WP_Error( 'invalid', implode( '; ', $errors ), array( 'status' => 400 ) );
+		}
+		$all = get_option( self::PATTERNS_OPTION, array() );
+		$all = is_array( $all ) ? array_values( $all ) : array();
+		$ids = array();
+		foreach ( $all as $p ) {
+			if ( isset( $p['id'] ) ) {
+				$ids[ (string) $p['id'] ] = true;
+			}
+		}
+		$pid = '';
+		for ( $i = 0; $i < 10; $i++ ) {
+			$candidate = 'p' . wp_generate_password( 7, false, false );
+			if ( ! isset( $ids[ $candidate ] ) ) {
+				$pid = $candidate;
+				break;
+			}
+		}
+		if ( '' === $pid ) {
+			return new \WP_Error( 'full', 'Could not allocate a pattern ID', array( 'status' => 500 ) );
+		}
+		array_unshift(
+			$all,
+			array(
+				'id'   => $pid,
+				'name' => $name,
+				'node' => $clean,
+				'ts'   => time(),
+			)
+		);
+		update_option( self::PATTERNS_OPTION, array_slice( $all, 0, self::MAX_PATTERNS ) );
+		return rest_ensure_response( array( 'ok' => true, 'id' => $pid, 'warnings' => $errors ) );
+	}
+
+	public static function patterns_delete( \WP_REST_Request $req ) {
+		$pid = preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $req->get_param( 'pid' ) );
+		$all = get_option( self::PATTERNS_OPTION, array() );
+		$all = is_array( $all ) ? array_values( $all ) : array();
+		$kept = array();
+		foreach ( $all as $p ) {
+			if ( ! isset( $p['id'] ) || (string) $p['id'] !== $pid ) {
+				$kept[] = $p;
+			}
+		}
+		update_option( self::PATTERNS_OPTION, $kept );
+		return rest_ensure_response( array( 'ok' => true ) );
 	}
 
 	private static function write_css_file( $post_id, $css ) {
