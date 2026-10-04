@@ -40,7 +40,10 @@ class Renderer {
 	 * get the same sanitization as authored text.
 	 *
 	 * Supported: site_title, site_tagline, post_title, post_date,
-	 * post_excerpt, author_name. Unknown tags are left in place.
+	 * post_excerpt, author_name, plus {{meta:key}} for public post meta
+	 * (custom fields, ACF text fields — plain postmeta under the hood).
+	 * Private keys (leading _) and non-scalar values never resolve;
+	 * unknown tags are left in place.
 	 *
 	 * @param string $str
 	 * @return string
@@ -49,13 +52,22 @@ class Renderer {
 		if ( ! is_string( $str ) || false === strpos( $str, '{{' ) ) {
 			return $str;
 		}
-		if ( ! preg_match_all( '/\{\{([a-z_]+)\}\}/', $str, $m ) ) {
+		if ( ! preg_match_all( '/\{\{([a-z_]+(?::[a-zA-Z0-9_-]+)?)\}\}/', $str, $m ) ) {
 			return $str;
 		}
 		$post = get_post();
 		foreach ( array_unique( $m[1] ) as $tag ) {
 			$value = null;
-			switch ( $tag ) {
+			if ( 0 === strpos( $tag, 'meta:' ) && $post ) {
+				$key = substr( $tag, 5 );
+				if ( preg_match( '/^[a-zA-Z0-9_-]{1,64}$/', $key ) && '_' !== $key[0] ) {
+					$raw = get_post_meta( $post->ID, $key, true );
+					if ( is_scalar( $raw ) ) {
+						$value = (string) $raw;
+					}
+				}
+			} else {
+				switch ( $tag ) {
 				case 'site_title':
 					$value = get_bloginfo( 'name' );
 					break;
@@ -74,6 +86,7 @@ class Renderer {
 				case 'author_name':
 					$value = $post ? get_the_author_meta( 'display_name', $post->post_author ) : '';
 					break;
+				}
 			}
 			if ( null !== $value ) {
 				$str = str_replace( '{{' . $tag . '}}', (string) $value, $str );

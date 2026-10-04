@@ -1309,14 +1309,32 @@ const DYN_TAGS = ['site_title', 'site_tagline', 'post_title', 'post_date', 'post
 
 /** Append a {{tag}} to a text setting. Preview shows the raw tag; frontend resolves it. */
 function TagButtons({ current, onPick }: { current: string; onPick: (v: string) => void }) {
+  const [metaKey, setMetaKey] = useState('');
+  const cleanKey = metaKey.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 64).replace(/^_+/, '');
   return (
-    <div className="mel-row">
-      {DYN_TAGS.map((t) => (
-        <button key={t} title={`Insert {{${t}}}`} onClick={() => onPick(`${current || ''}{{${t}}}`)}>
-          {`{{${t}}}`}
+    <>
+      <div className="mel-row">
+        {DYN_TAGS.map((t) => (
+          <button key={t} title={`Insert {{${t}}}`} onClick={() => onPick(`${current || ''}{{${t}}}`)}>
+            {`{{${t}}}`}
+          </button>
+        ))}
+      </div>
+      <div className="mel-row" title="Insert a public custom-field value (private _keys never resolve)">
+        <input
+          placeholder="custom field key"
+          value={metaKey}
+          onChange={(e) => setMetaKey(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button
+          disabled={!cleanKey}
+          onClick={() => { onPick(`${current || ''}{{meta:${cleanKey}}}`); setMetaKey(''); }}
+        >
+          {`{{meta…}}`}
         </button>
-      ))}
-    </div>
+      </div>
+    </>
   );
 }
 
