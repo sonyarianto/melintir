@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.12.0
+Stable tag: 0.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.12.0:
+What you get in 0.13.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -41,8 +41,9 @@ What you get in 0.12.0:
   swap, display conditions, shortcodes, popup builder (lite).
 * Form upgrades: per-form recipients, Turnstile, spam-check filter,
   CSV entry export.
-* Dynamic tags resolved at render time; global color palette
-  (`var(--mel-*)` refs) and global font tokens with curated stacks.
+* Dynamic tags resolved at render time (site, post, author, plus
+  `{{meta:key}}` custom fields); global color palette (`var(--mel-*)`
+  refs) and global font tokens with curated stacks.
 * Saved patterns: store any block as a reusable pattern, re-insert
   anywhere as a copy (Global widgets slice 1).
 * Role manager: restrict builder access by role in Melintir → Settings.
@@ -94,6 +95,11 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.13.0 =
+* Custom-field dynamic tags: {{meta:key}} resolves public post meta
+  (works with ACF text fields out of the box); private _keys and
+  non-scalar values never resolve. Tag picker input in the inspector.
 
 = 0.12.0 =
 * Scroll entrance animations: 5 presets + delay for every node, single
