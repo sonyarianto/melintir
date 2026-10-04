@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.14.0
+Stable tag: 0.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.14.0:
+What you get in 0.15.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -46,7 +46,7 @@ What you get in 0.14.0:
   `{{meta:key}}` custom fields); global color palette (`var(--mel-*)`
   refs) and global font tokens with curated stacks.
 * Saved patterns: store any block as a reusable pattern, re-insert
-  anywhere as a copy (Global widgets slice 1).
+  as an unlinked copy or a live link (one save updates all pages).
 * Role manager: restrict builder access by role in Melintir → Settings.
 * Woo lite slice 1: Products grid with live Store-API preview, sale
   badges, ratings, prices and add-to-cart (needs WooCommerce).
@@ -96,6 +96,12 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.15.0 =
+* Linked patterns (Global widgets slice 2): insert live links, edit once
+  to update every using page via bake-on-save propagation. Cycle-safe
+  expansion, deterministic ids, guarded deletion, locked canvas preview
+  with edit-source / unlink flows.
 
 = 0.14.0 =
 * Template library grows 1 → 5: landing (gradient hero, animations,
