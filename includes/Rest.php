@@ -42,6 +42,15 @@ class Rest {
 				'permission_callback' => array( __CLASS__, 'can_edit' ),
 			)
 		);
+		register_rest_route(
+			'melintir/v1',
+			'/post/(?P<id>\d+)/migrate',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'migrate' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
 	}
 
 	public static function can_edit( \WP_REST_Request $req ) {
@@ -109,6 +118,17 @@ class Rest {
 			}
 		}
 		return rest_ensure_response( $out );
+	}
+
+	public static function migrate( \WP_REST_Request $req ) {
+		$id      = intval( $req->get_param( 'id' ) );
+		$params  = $req->get_json_params();
+		$dry_run = is_array( $params ) && ! empty( $params['dry_run'] );
+		$result  = Migrator::migrate_post( $id, $dry_run );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
 	}
 
 	private static function write_css_file( $post_id, $css ) {

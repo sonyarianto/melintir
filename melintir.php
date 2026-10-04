@@ -23,6 +23,7 @@ define( 'MELINTIR_META_CSS', '_melintir_css' );
 
 require_once MELINTIR_PATH . 'includes/Security.php';
 require_once MELINTIR_PATH . 'includes/Renderer.php';
+require_once MELINTIR_PATH . 'includes/Migrator.php';
 require_once MELINTIR_PATH . 'includes/Rest.php';
 require_once MELINTIR_PATH . 'includes/Plugin.php';
 
