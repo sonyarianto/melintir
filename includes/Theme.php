@@ -10,13 +10,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * `melintir_template` posts hold a Melintir doc (`_melintir_data`, same
  * shape as pages) plus location meta:
- *   _melintir_location: header | footer
- *   _melintir_rule:     entire_site          (only rule in slice 1)
+ *   _melintir_location: header | footer | popup
+ *   _melintir_rule:     entire_site | front_page | blog_home |
+ *                       singular_page | singular_post | archive
+ *   (per-ID / taxonomy values come in slice 3; rules are ordered by
+ *   specificity, first match wins)
  *
  * Frontend replacement (Theme::register()):
  *   - Block themes: `render_block` swaps core/template-part header/footer.
- *   - Classic themes: NOT replaced in slice 1 (see Theme::render for why);
- *     use the bundled Canvas page template for full-bleed landing pages.
+ *   - Classic themes: use [melintir_header] / [melintir_footer] shortcodes
+ *     or melintir_header() / melintir_footer() in a child theme. There is
+ *     no reliable universal auto-replace for classic header.php, so we
+ *     don't pretend (no output-buffer or CSS-hiding hacks).
  * Popups (lite): location `popup` + trigger meta, injected at `wp_footer`,
  * driven by assets/frontend/frontend.js (delay / click / once-per-session).
  */
@@ -35,6 +40,9 @@ class Theme {
 		add_filter( 'theme_page_templates', array( __CLASS__, 'canvas_template' ) );
 		add_filter( 'template_include', array( __CLASS__, 'load_canvas' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'inject_popup' ) );
+		add_shortcode( 'melintir_header', array( __CLASS__, 'shortcode_header' ) );
+		add_shortcode( 'melintir_footer', array( __CLASS__, 'shortcode_footer' ) );
+		add_shortcode( 'melintir_template', array( __CLASS__, 'shortcode_template' ) );
 	}
 
 	public static function post_type() {
@@ -115,7 +123,16 @@ class Theme {
 			echo '<option value="' . esc_attr( $v ) . '"' . selected( $loc, $v, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></label></p>';
-		echo '<p class="description">' . esc_html__( 'Slice 1 rule: entire site. Per-page/archive conditions come in slice 2.', 'melintir' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Rule decides where this template displays. Specific rules beat Entire Site.', 'melintir' ) . '</p>';
+		$rule = get_post_meta( $post->ID, self::RULE_META, true );
+		if ( '' === $rule ) {
+			$rule = 'entire_site';
+		}
+		echo '<p><label>' . esc_html__( 'Display rule:', 'melintir' ) . '<br /><select name="melintir_rule">';
+		foreach ( self::rules() as $v => $label ) {
+			echo '<option value="' . esc_attr( $v ) . '"' . selected( $rule, $v, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></label></p>';
 		$trigger = get_post_meta( $post->ID, '_melintir_trigger', true );
 		if ( ! is_array( $trigger ) ) {
 			$trigger = array();
@@ -152,7 +169,11 @@ class Theme {
 			$loc = '';
 		}
 		update_post_meta( $post_id, self::LOC_META, $loc );
-		update_post_meta( $post_id, self::RULE_META, 'entire_site' );
+		$rule = isset( $_POST['melintir_rule'] ) ? sanitize_key( $_POST['melintir_rule'] ) : 'entire_site'; // phpcs:ignore
+		if ( ! array_key_exists( $rule, self::rules() ) ) {
+			$rule = 'entire_site';
+		}
+		update_post_meta( $post_id, self::RULE_META, $rule );
 		$mode = isset( $_POST['melintir_trigger_mode'] ) && 'click' === $_POST['melintir_trigger_mode'] ? 'click' : 'load'; // phpcs:ignore
 		$delay = isset( $_POST['melintir_trigger_delay'] ) ? max( 0, min( 120, intval( $_POST['melintir_trigger_delay'] ) ) ) : 3; // phpcs:ignore
 		$selector = isset( $_POST['melintir_trigger_selector'] ) ? substr( preg_replace( '/[^a-zA-Z0-9_.#\- \[\]=\"\':]/', '', (string) $_POST['melintir_trigger_selector'] ), 0, 200 ) : ''; // phpcs:ignore
@@ -170,17 +191,58 @@ class Theme {
 	}
 
 	/**
-	 * Find the published template for a location (entire_site only).
+	 * Available display rules, most specific first. First match wins.
 	 *
-	 * @param string $location header|footer
+	 * @return array slug => label
+	 */
+	public static function rules() {
+		return array(
+			'front_page'    => __( 'Front Page', 'melintir' ),
+			'blog_home'     => __( 'Blog Home', 'melintir' ),
+			'singular_page' => __( 'All Pages', 'melintir' ),
+			'singular_post' => __( 'All Posts', 'melintir' ),
+			'archive'       => __( 'All Archives', 'melintir' ),
+			'entire_site'   => __( 'Entire Site', 'melintir' ),
+		);
+	}
+
+	private static function rule_matches( $rule ) {
+		switch ( $rule ) {
+			case 'front_page':
+				return function_exists( 'is_front_page' ) && is_front_page();
+			case 'blog_home':
+				return function_exists( 'is_home' ) && is_home();
+			case 'singular_page':
+				return function_exists( 'is_page' ) && is_page();
+			case 'singular_post':
+				return function_exists( 'is_single' ) && is_single();
+			case 'archive':
+				return function_exists( 'is_archive' ) && is_archive();
+			case 'entire_site':
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	/**
+	 * Find the published template for a location in the current context.
+	 * Missing rule meta means entire_site (slice-1 templates keep working).
+	 *
+	 * @param string $location header|footer|popup
 	 * @return int post ID, 0 if none.
 	 */
 	public static function assigned( $location ) {
+		static $cache = array();
+		$ckey = $location . '|' . ( function_exists( 'is_front_page' ) && is_front_page() ? 'f' : '' ) . ( function_exists( 'is_home' ) && is_home() ? 'h' : '' ) . (string) get_queried_object_id();
+		if ( isset( $cache[ $ckey ] ) ) {
+			return $cache[ $ckey ];
+		}
 		$found = get_posts(
 			array(
 				'post_type'   => self::CPT,
 				'post_status' => 'publish',
-				'numberposts' => 1,
+				'numberposts' => 20,
 				'meta_query'  => array( // phpcs:ignore
 					array( 'key' => self::LOC_META, 'value' => $location ),
 				),
@@ -188,7 +250,26 @@ class Theme {
 				'no_found_rows' => true,
 			)
 		);
-		return $found ? intval( $found[0] ) : 0;
+		$best       = 0;
+		$best_order = PHP_INT_MAX;
+		$order      = array_keys( self::rules() );
+		foreach ( $found as $id ) {
+			$rule = get_post_meta( $id, self::RULE_META, true );
+			if ( '' === $rule ) {
+				$rule = 'entire_site';
+			}
+			if ( ! self::rule_matches( $rule ) ) {
+				continue;
+			}
+			$pos = array_search( $rule, $order, true );
+			$pos = false === $pos ? PHP_INT_MAX - 1 : $pos;
+			if ( $pos < $best_order ) {
+				$best_order = $pos;
+				$best       = intval( $id );
+			}
+		}
+		$cache[ $ckey ] = $best;
+		return $best;
 	}
 
 	/**
@@ -266,5 +347,37 @@ class Theme {
 		echo '<div class="mel-popup-backdrop" data-close></div>';
 		echo '<div class="mel-popup-box" role="dialog" aria-modal="true"><button class="mel-popup-x" data-close aria-label="' . esc_attr__( 'Close', 'melintir' ) . '">×</button>' . $mel . '</div>';
 		echo '</div>';
+	}
+
+	/**
+	 * Shortcodes for classic themes (and anywhere else):
+	 * [melintir_header], [melintir_footer], [melintir_template id="123"].
+	 */
+	public static function shortcode_header() {
+		return self::location_html( 'header' );
+	}
+
+	public static function shortcode_footer() {
+		return self::location_html( 'footer' );
+	}
+
+	public static function shortcode_template( $atts ) {
+		$atts = shortcode_atts( array( 'id' => 0 ), $atts, 'melintir_template' );
+		$id   = absint( $atts['id'] );
+		if ( ! $id || self::CPT !== get_post_type( $id ) ) {
+			return '';
+		}
+		return Renderer::render_page( $id );
+	}
+
+	private static function location_html( $location ) {
+		if ( is_admin() ) {
+			return '';
+		}
+		$id = self::assigned( $location );
+		if ( ! $id ) {
+			return '';
+		}
+		return '<!-- melintir:' . esc_attr( $location ) . ' -->' . Renderer::render_page( $id );
 	}
 }

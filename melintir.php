@@ -32,6 +32,18 @@ require_once MELINTIR_PATH . 'includes/Plugin.php';
 Melintir\Form::register();
 Melintir\Theme::register();
 
+/**
+ * Template tags for classic/child themes:
+ *   <?php melintir_header(); ?> / <?php melintir_footer(); ?>
+ * Render the assigned template for the current context (or nothing).
+ */
+function melintir_header() {
+	echo do_shortcode( '[melintir_header]' ); // phpcs:ignore
+}
+function melintir_footer() {
+	echo do_shortcode( '[melintir_footer]' ); // phpcs:ignore
+}
+
 register_activation_hook( __FILE__, array( 'Melintir\\Plugin', 'activate' ) );
 
 add_action( 'init', 'melintir_load_textdomain' );
