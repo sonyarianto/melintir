@@ -40,6 +40,21 @@ export function generateCssFallback(doc: MelDoc): string {
     if (colorOk(l.bg)) d += `background:${l.bg};`;
     if (l.padding != null) d += `padding:${l.padding | 0}px;`;
     if (l.radius != null) d += `border-radius:${l.radius | 0}px;`;
+    const shadows: Record<string, string> = {
+      sm: '0 1px 2px rgba(15,23,42,.08)',
+      md: '0 4px 12px rgba(15,23,42,.12)',
+      lg: '0 10px 28px rgba(15,23,42,.16)',
+      xl: '0 20px 48px rgba(15,23,42,.2)',
+    };
+    if (shadows[l.shadow]) d += `box-shadow:${shadows[l.shadow]};`;
+    if ((l.borderWidth | 0) > 0 && colorOk(l.borderColor)) {
+      const bs = l.borderStyle === 'dashed' || l.borderStyle === 'dotted' ? l.borderStyle : 'solid';
+      d += `border:${Math.max(1, Math.min(8, l.borderWidth | 0))}px ${bs} ${l.borderColor};`;
+    }
+    if (l.gradient && colorOk(l.gradient.from) && colorOk(l.gradient.to)) {
+      const ga = Math.max(0, Math.min(360, (l.gradient.angle ?? 135) | 0));
+      d += `background:linear-gradient(${ga}deg,${l.gradient.from},${l.gradient.to});`;
+    }
     const t = s.typo || {};
     if (t.size != null) d += `font-size:${t.size | 0}px;`;
     if (t.weight != null) d += `font-weight:${t.weight | 0};`;

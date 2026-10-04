@@ -515,6 +515,39 @@ class Security {
 					$layout['bg'] = $bg;
 				}
 			}
+			if ( isset( $style['layout']['shadow'] ) ) {
+				$sh = (string) $style['layout']['shadow'];
+				if ( in_array( $sh, array( 'sm', 'md', 'lg', 'xl' ), true ) ) {
+					$layout['shadow'] = $sh;
+				}
+			}
+			if ( isset( $style['layout']['borderWidth'] ) ) {
+				$bw = max( 0, min( 8, intval( $style['layout']['borderWidth'] ) ) );
+				if ( $bw > 0 ) {
+					$bs = isset( $style['layout']['borderStyle'] ) ? (string) $style['layout']['borderStyle'] : 'solid';
+					if ( ! in_array( $bs, array( 'solid', 'dashed', 'dotted' ), true ) ) {
+						$bs = 'solid';
+					}
+					$bc = isset( $style['layout']['borderColor'] ) ? self::sanitize_color( $style['layout']['borderColor'] ) : '';
+					if ( '' !== $bc ) {
+						$layout['borderWidth'] = $bw;
+						$layout['borderStyle'] = $bs;
+						$layout['borderColor'] = $bc;
+					}
+				}
+			}
+			if ( isset( $style['layout']['gradient'] ) && is_array( $style['layout']['gradient'] ) ) {
+				$g = $style['layout']['gradient'];
+				$from = isset( $g['from'] ) ? self::sanitize_color( $g['from'] ) : '';
+				$to   = isset( $g['to'] ) ? self::sanitize_color( $g['to'] ) : '';
+				if ( '' !== $from && '' !== $to ) {
+					$layout['gradient'] = array(
+						'from'  => $from,
+						'to'    => $to,
+						'angle' => max( 0, min( 360, isset( $g['angle'] ) ? intval( $g['angle'] ) : 135 ) ),
+					);
+				}
+			}
 			if ( ! empty( $layout ) ) {
 				$out['layout'] = $layout;
 			}

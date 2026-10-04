@@ -915,6 +915,8 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
         <NavInspector node={node} onSetting={(p) => onSetting(p)} />
       )}
 
+      <BoxFields layout={L} globals={globals} onStyle={(p) => onStyle(p)} />
+
       <AdvancedCss node={node} bp={bp} onStyle={(p) => onStyle(p)} />
 
       {node.widgetType === 'form' && (
@@ -973,6 +975,54 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
       {(node.widgetType === 'text' || node.widgetType === 'button') && (
         <FontField value={T.family || ''} globals={globals} onChange={(v) => onStyle({ typo: { family: v } })} />
       )}
+    </div>
+  );
+}
+
+/** Shadow / border / gradient for any node. Gradient replaces bg when both set. */
+function BoxFields({ layout, globals, onStyle }: {
+  layout: any;
+  globals: Record<string, string>;
+  onStyle: (p: Record<string, any>) => void;
+}) {
+  const L = layout || {};
+  const G = L.gradient || {};
+  const setGradient = (patch: Record<string, any>) =>
+    onStyle({ layout: { gradient: { from: G.from, to: G.to, angle: G.angle, ...patch } } });
+  return (
+    <div className="mel-advanced">
+      <h4>Box</h4>
+      <Field label="Shadow">
+        <select value={L.shadow || ''} onChange={(e) => onStyle({ layout: { shadow: e.target.value || undefined } })}>
+          <option value="">none</option>
+          <option value="sm">small</option>
+          <option value="md">medium</option>
+          <option value="lg">large</option>
+          <option value="xl">extra large</option>
+        </select>
+      </Field>
+      <div className="mel-row">
+        <Field label="Border px"><Num value={L.borderWidth} onChange={(v) => onStyle({ layout: { borderWidth: Math.max(0, Math.min(8, v || 0)) } })} /></Field>
+        <Field label="Style">
+          <select value={L.borderStyle || 'solid'} onChange={(e) => onStyle({ layout: { borderStyle: e.target.value } })}>
+            <option value="solid">solid</option>
+            <option value="dashed">dashed</option>
+            <option value="dotted">dotted</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Border color">
+        <ColorField value={L.borderColor || ''} globals={globals} fallback="#0f172a" onChange={(v) => onStyle({ layout: { borderColor: v } })} />
+      </Field>
+      <div className="mel-row">
+        <Field label="Gradient from">
+          <ColorField value={G.from || ''} globals={globals} fallback="#2563eb" onChange={(v) => setGradient({ from: v })} />
+        </Field>
+        <Field label="to">
+          <ColorField value={G.to || ''} globals={globals} fallback="#7c3aed" onChange={(v) => setGradient({ to: v })} />
+        </Field>
+        <Field label="°"><Num value={G.angle ?? 135} onChange={(v) => setGradient({ angle: Math.max(0, Math.min(360, v || 0)) })} /></Field>
+      </div>
     </div>
   );
 }

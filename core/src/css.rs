@@ -177,6 +177,44 @@ fn style_decls(style: &Style) -> String {
     if let Some(v) = num(&style.layout, "radius") {
         d.push_str(&format!("border-radius:{v}px;"));
     }
+    if let Some(v) = style.layout.get("shadow").and_then(|v| v.as_str()) {
+        let shadow = match v {
+            "sm" => Some("0 1px 2px rgba(15,23,42,.08)"),
+            "md" => Some("0 4px 12px rgba(15,23,42,.12)"),
+            "lg" => Some("0 10px 28px rgba(15,23,42,.16)"),
+            "xl" => Some("0 20px 48px rgba(15,23,42,.2)"),
+            _ => None,
+        };
+        if let Some(s) = shadow {
+            d.push_str(&format!("box-shadow:{s};"));
+        }
+    }
+    if let Some(w) = num(&style.layout, "borderWidth") {
+        if w > 0 {
+            if let Some(c) = style.layout.get("borderColor").and_then(sanitize_color) {
+                let st = style
+                    .layout
+                    .get("borderStyle")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| *s == "solid" || *s == "dashed" || *s == "dotted")
+                    .unwrap_or("solid");
+                let w = w.clamp(1, 8);
+                d.push_str(&format!("border:{w}px {st} {c};"));
+            }
+        }
+    }
+    if let Some(g) = style.layout.get("gradient").and_then(|v| v.as_object()) {
+        let from = g.get("from").and_then(sanitize_color);
+        let to = g.get("to").and_then(sanitize_color);
+        if let (Some(f), Some(t)) = (from, to) {
+            let angle = g
+                .get("angle")
+                .and_then(|v| v.as_i64().or_else(|| v.as_u64().map(|n| n as i64)))
+                .unwrap_or(135)
+                .clamp(0, 360);
+            d.push_str(&format!("background:linear-gradient({angle}deg,{f},{t});"));
+        }
+    }
     if let Some(v) = num(&style.typo, "size") {
         d.push_str(&format!("font-size:{v}px;"));
     }
@@ -241,6 +279,25 @@ mod tests {
         let css = generate_css(&doc);
         assert!(css.contains(".mel-w001{"));
         assert!(css.contains("font-size:48px"));
+    }
+
+    /// Box depth slice: shadow presets, borders and gradients must emit the
+    /// exact same declarations as Renderer::style_decls (PHP mirror).
+    #[test]
+    fn box_decls() {
+        let doc: Document = serde_json::from_value(serde_json::json!({
+            "version": "0.1.0",
+            "root": {"id":"root","elType":"container","settings":{},"style":{"layout":{
+                "shadow": "lg",
+                "borderWidth": 2, "borderStyle": "dashed", "borderColor": "#dc2626",
+                "gradient": {"from": "#2563eb", "to": "#7c3aed", "angle": 135}
+            }},"elements":[]}
+        }))
+        .unwrap();
+        let css = generate_css(&doc);
+        assert!(css.contains("box-shadow:0 10px 28px rgba(15,23,42,.16);"), "missing shadow, got: {css}");
+        assert!(css.contains("border:2px dashed #dc2626;"), "missing border, got: {css}");
+        assert!(css.contains("background:linear-gradient(135deg,#2563eb,#7c3aed);"), "missing gradient, got: {css}");
     }
 
     /// Regression: PHP encodes empty maps as `[]`. Real saved docs must parse.

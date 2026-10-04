@@ -12,7 +12,7 @@ export interface MelNode {
   widgetType?: WidgetType;
   settings: Record<string, any>;
   style: {
-    layout?: { direction?: 'row' | 'column'; gap?: number; justify?: string; align?: string; bg?: string; padding?: number; radius?: number };
+    layout?: { direction?: 'row' | 'column'; gap?: number; justify?: string; align?: string; bg?: string; padding?: number; radius?: number; shadow?: string; borderWidth?: number; borderStyle?: string; borderColor?: string; gradient?: { from?: string; to?: string; angle?: number } };
     typo?: { size?: number; weight?: number; color?: string };
     tablet?: any;
     mobile?: any;

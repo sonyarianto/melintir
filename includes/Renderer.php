@@ -437,6 +437,30 @@ class Renderer {
 			if ( isset( $l['radius'] ) ) {
 				$d .= 'border-radius:' . intval( $l['radius'] ) . 'px;';
 			}
+			$shadows = array(
+				'sm' => '0 1px 2px rgba(15,23,42,.08)',
+				'md' => '0 4px 12px rgba(15,23,42,.12)',
+				'lg' => '0 10px 28px rgba(15,23,42,.16)',
+				'xl' => '0 20px 48px rgba(15,23,42,.2)',
+			);
+			if ( isset( $l['shadow'] ) && isset( $shadows[ $l['shadow'] ] ) ) {
+				$d .= 'box-shadow:' . $shadows[ $l['shadow'] ] . ';';
+			}
+			if ( ! empty( $l['borderWidth'] ) && ! empty( $l['borderColor'] ) ) {
+				$bs = ( isset( $l['borderStyle'] ) && in_array( $l['borderStyle'], array( 'solid', 'dashed', 'dotted' ), true ) ) ? $l['borderStyle'] : 'solid';
+				$bc = Security::sanitize_color( $l['borderColor'] );
+				if ( '' !== $bc ) {
+					$d .= 'border:' . max( 1, min( 8, intval( $l['borderWidth'] ) ) ) . 'px ' . $bs . ' ' . $bc . ';';
+				}
+			}
+			if ( isset( $l['gradient'] ) && is_array( $l['gradient'] ) ) {
+				$gf = isset( $l['gradient']['from'] ) ? Security::sanitize_color( $l['gradient']['from'] ) : '';
+				$gt = isset( $l['gradient']['to'] ) ? Security::sanitize_color( $l['gradient']['to'] ) : '';
+				if ( '' !== $gf && '' !== $gt ) {
+					$ga = max( 0, min( 360, isset( $l['gradient']['angle'] ) ? intval( $l['gradient']['angle'] ) : 135 ) );
+					$d .= 'background:linear-gradient(' . $ga . 'deg,' . $gf . ',' . $gt . ');';
+				}
+			}
 		}
 		if ( isset( $style['typo'] ) && is_array( $style['typo'] ) ) {
 			$t = $style['typo'];
