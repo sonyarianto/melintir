@@ -14,6 +14,7 @@ class Security {
 	const ALLOWED_WIDGETS = array(
 		'heading', 'text', 'image', 'button',
 		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
+		'accordion', 'gallery', 'counter', 'testimonial',
 	);
 
 	const MAX_NODES = 1000;
@@ -252,6 +253,51 @@ class Security {
 				$out['showImage']    = ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] );
 				$out['showTitle']    = ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] );
 				$out['showExcerpt']  = ! isset( $settings['showExcerpt'] ) || ! empty( $settings['showExcerpt'] );
+				break;
+			case 'accordion':
+				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();
+				$clean_items = array();
+				foreach ( $items as $it ) {
+					if ( ! is_array( $it ) ) {
+						continue;
+					}
+					$clean_items[] = array(
+						'title'   => isset( $it['title'] ) ? sanitize_text_field( (string) $it['title'] ) : '',
+						'content' => isset( $it['content'] ) ? wp_kses_post( (string) $it['content'] ) : '',
+					);
+				}
+				$out['items'] = $clean_items;
+				break;
+			case 'gallery':
+				$images = isset( $settings['images'] ) && is_array( $settings['images'] ) ? array_slice( $settings['images'], 0, 30 ) : array();
+				$clean_images = array();
+				foreach ( $images as $im ) {
+					if ( ! is_array( $im ) ) {
+						continue;
+					}
+					$url = isset( $im['url'] ) ? esc_url_raw( (string) $im['url'] ) : '';
+					if ( '' === $url ) {
+						continue;
+					}
+					$clean_images[] = array(
+						'url' => $url,
+						'alt' => isset( $im['alt'] ) ? sanitize_text_field( (string) $im['alt'] ) : '',
+						'id'  => isset( $im['id'] ) ? absint( $im['id'] ) : 0,
+					);
+				}
+				$out['images']  = $clean_images;
+				$out['columns'] = max( 1, min( 6, isset( $settings['columns'] ) ? intval( $settings['columns'] ) : 3 ) );
+				break;
+			case 'counter':
+				$out['number'] = isset( $settings['number'] ) ? max( 0, min( 1000000000, intval( $settings['number'] ) ) ) : 0;
+				$out['prefix'] = isset( $settings['prefix'] ) ? sanitize_text_field( (string) $settings['prefix'] ) : '';
+				$out['suffix'] = isset( $settings['suffix'] ) ? sanitize_text_field( (string) $settings['suffix'] ) : '';
+				break;
+			case 'testimonial':
+				$out['quote'] = isset( $settings['quote'] ) ? wp_kses_post( (string) $settings['quote'] ) : '';
+				$out['name']  = isset( $settings['name'] ) ? sanitize_text_field( (string) $settings['name'] ) : '';
+				$out['role']  = isset( $settings['role'] ) ? sanitize_text_field( (string) $settings['role'] ) : '';
+				$out['avatar'] = isset( $settings['avatar'] ) ? esc_url_raw( (string) $settings['avatar'] ) : '';
 				break;
 			default:
 				// divider, spacer: no user HTML.

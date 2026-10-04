@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial'];
 
 declare global {
   interface Window {
@@ -384,6 +384,74 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
               <label key={k}><input type="checkbox" checked={s[k] !== false} onChange={(e) => onSetting({ [k]: e.target.checked })} /> {label}</label>
             ))}
           </div>
+        </>
+      )}
+
+      {node.widgetType === 'accordion' && (
+        <>
+          {(s.items || []).map((t: any, i: number) => (
+            <div key={i} className="mel-tabedit">
+              <Field label={`Item ${i + 1} title`}>
+                <input value={t.title || ''} onChange={(e) => {
+                  const items = [...(s.items || [])];
+                  items[i] = { ...items[i], title: e.target.value };
+                  onSetting({ items });
+                }} />
+              </Field>
+              <Field label="Content">
+                <textarea rows={2} value={t.content || ''} onChange={(e) => {
+                  const items = [...(s.items || [])];
+                  items[i] = { ...items[i], content: e.target.value };
+                  onSetting({ items });
+                }} />
+              </Field>
+              <button onClick={() => onSetting({ items: (s.items || []).filter((_: any, j: number) => j !== i) })}>remove item</button>
+            </div>
+          ))}
+          <button onClick={() => onSetting({ items: [...(s.items || []), { title: 'New item', content: 'Content' }] })}>+ add item</button>
+        </>
+      )}
+
+      {node.widgetType === 'gallery' && (
+        <>
+          <Field label="Columns (1–6)"><Num value={s.columns ?? 3} onChange={(v) => onSetting({ columns: Math.max(1, Math.min(6, v || 1)) })} /></Field>
+          {(s.images || []).map((im: any, i: number) => (
+            <div key={i} className="mel-tabedit">
+              <Field label={`Image ${i + 1} URL`}>
+                <input value={im.url || ''} onChange={(e) => {
+                  const images = [...(s.images || [])];
+                  images[i] = { ...images[i], url: e.target.value };
+                  onSetting({ images });
+                }} />
+              </Field>
+              <div className="mel-row">
+                <button onClick={() => pickImage((url, id) => {
+                  const images = [...(s.images || [])];
+                  images[i] = { ...images[i], url, id };
+                  onSetting({ images });
+                })}>📚 Pick</button>
+                <button onClick={() => onSetting({ images: (s.images || []).filter((_: any, j: number) => j !== i) })}>remove</button>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => onSetting({ images: [...(s.images || []), { url: '', alt: '', id: 0 }] })}>+ add image</button>
+        </>
+      )}
+
+      {node.widgetType === 'counter' && (
+        <>
+          <Field label="Number"><Num value={s.number ?? 0} onChange={(v) => onSetting({ number: v || 0 })} /></Field>
+          <Field label="Prefix"><input value={s.prefix || ''} onChange={(e) => onSetting({ prefix: e.target.value })} /></Field>
+          <Field label="Suffix"><input value={s.suffix || ''} onChange={(e) => onSetting({ suffix: e.target.value })} /></Field>
+        </>
+      )}
+
+      {node.widgetType === 'testimonial' && (
+        <>
+          <Field label="Quote"><textarea rows={3} value={s.quote || ''} onChange={(e) => onSetting({ quote: e.target.value })} /></Field>
+          <Field label="Name"><input value={s.name || ''} onChange={(e) => onSetting({ name: e.target.value })} /></Field>
+          <Field label="Role"><input value={s.role || ''} onChange={(e) => onSetting({ role: e.target.value })} /></Field>
+          <Field label="Avatar URL"><input value={s.avatar || ''} onChange={(e) => onSetting({ avatar: e.target.value })} /></Field>
         </>
       )}
 

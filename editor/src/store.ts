@@ -50,6 +50,19 @@ function defaults(type: WidgetType): Partial<MelNode> {
       settings: { postType: 'post', postsPerPage: 6, columns: 3, order: 'DESC', orderBy: 'date', showImage: true, showTitle: true, showExcerpt: true },
       style: {},
     };
+    case 'accordion': return {
+      settings: { items: [{ title: 'Item 1', content: 'Content 1' }, { title: 'Item 2', content: 'Content 2' }] },
+      style: {},
+    };
+    case 'gallery': return {
+      settings: { images: [{ url: 'https://picsum.photos/seed/a/600/400', alt: '', id: 0 }, { url: 'https://picsum.photos/seed/b/600/400', alt: '', id: 0 }], columns: 3 },
+      style: {},
+    };
+    case 'counter': return { settings: { number: 1234, prefix: '', suffix: '+' }, style: {} };
+    case 'testimonial': return {
+      settings: { quote: 'Melintir is blazing fast.', name: 'Jane Doe', role: 'Founder', avatar: '' },
+      style: {},
+    };
   }
 }
 

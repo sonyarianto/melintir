@@ -119,6 +119,48 @@ class Renderer {
 				return self::render_form( $id, $cls, $sett );
 			case 'loop':
 				return self::render_loop( $cls, $sett );
+			case 'accordion':
+				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
+				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
+				foreach ( array_values( $items ) as $i => $it ) {
+					$title   = isset( $it['title'] ) ? esc_html( (string) $it['title'] ) : '';
+					$content = isset( $it['content'] ) ? wp_kses_post( (string) $it['content'] ) : '';
+					$open    = 0 === $i ? ' open' : '';
+					$out    .= '<details class="mel-acc-item"' . $open . '><summary>' . $title . '</summary><div>' . $content . '</div></details>';
+				}
+				return $out . '</div>';
+			case 'gallery':
+				$images = isset( $sett['images'] ) && is_array( $sett['images'] ) ? $sett['images'] : array();
+				$gcols  = isset( $sett['columns'] ) ? max( 1, min( 6, intval( $sett['columns'] ) ) ) : 3;
+				$out    = '<div class="mel-gallery mel-gcols-' . $gcols . ' ' . esc_attr( $cls ) . '">';
+				foreach ( $images as $im ) {
+					$url = isset( $im['url'] ) ? esc_url( (string) $im['url'] ) : '';
+					$alt = isset( $im['alt'] ) ? esc_attr( (string) $im['alt'] ) : '';
+					if ( '' === $url ) {
+						continue;
+					}
+					$out .= '<figure class="mel-gimg"><img src="' . $url . '" alt="' . $alt . '" loading="lazy" /></figure>';
+				}
+				return $out . '</div>';
+			case 'counter':
+				$num = isset( $sett['number'] ) ? intval( $sett['number'] ) : 0;
+				$pre = isset( $sett['prefix'] ) ? esc_html( (string) $sett['prefix'] ) : '';
+				$suf = isset( $sett['suffix'] ) ? esc_html( (string) $sett['suffix'] ) : '';
+				return '<div class="mel-counter ' . esc_attr( $cls ) . '">' . $pre . '<span data-count="' . $num . '">0</span>' . $suf . '</div>';
+			case 'testimonial':
+				$quote  = isset( $sett['quote'] ) ? wp_kses_post( (string) $sett['quote'] ) : '';
+				$name   = isset( $sett['name'] ) ? esc_html( (string) $sett['name'] ) : '';
+				$role   = isset( $sett['role'] ) ? esc_html( (string) $sett['role'] ) : '';
+				$avatar = isset( $sett['avatar'] ) ? esc_url( (string) $sett['avatar'] ) : '';
+				$out    = '<figure class="mel-testimonial ' . esc_attr( $cls ) . '"><blockquote>' . $quote . '</blockquote><figcaption>';
+				if ( '' !== $avatar ) {
+					$out .= '<img class="mel-tavatar" src="' . $avatar . '" alt="" loading="lazy" />';
+				}
+				$out .= '<span class="mel-tname">' . $name . '</span>';
+				if ( '' !== $role ) {
+					$out .= '<span class="mel-trole">' . $role . '</span>';
+				}
+				return $out . '</figcaption></figure>';
 			default:
 				return '';
 		}
@@ -196,6 +238,8 @@ class Renderer {
 		$css = ".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n";
 		$css .= ".mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n";
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
+		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
+		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
 		$css .= self::node_css( $doc['root'] );
 		// Cap to avoid runaway postmeta.
 		if ( strlen( $css ) > 100 * 1024 ) {

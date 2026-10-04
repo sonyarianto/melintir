@@ -18,4 +18,33 @@
     });
     if (btns[0]) btns[0].setAttribute('aria-selected', 'true');
   });
+
+  // Animated counters: <span data-count="1234"> in .mel-counter.
+  var counters = document.querySelectorAll('[data-count]');
+  if (!counters.length || !('IntersectionObserver' in window)) {
+    counters.forEach(function (el) {
+      el.textContent = el.getAttribute('data-count');
+    });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      io.unobserve(el);
+      var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+      var t0 = null;
+      var dur = 1200;
+      function tick(t) {
+        if (!t0) t0 = t;
+        var p = Math.min(1, (t - t0) / dur);
+        el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  });
+  counters.forEach(function (el) {
+    io.observe(el);
+  });
 })();

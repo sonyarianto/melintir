@@ -39,6 +39,27 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
       </div>
     );
     case 'loop': return wrap(<LoopPreview settings={s} />);
+    case 'accordion': return wrap(
+      <div className="mel-accordion">
+        {(s.items || []).map((t: any, i: number) => (
+          <details key={i} className="mel-acc-item" open={i === 0}><summary>{t.title}</summary><div>{t.content}</div></details>
+        ))}
+      </div>
+    );
+    case 'gallery': return wrap(
+      <div className={`mel-gallery mel-gcols-${Math.max(1, Math.min(6, +s.columns || 3))}`}>
+        {(s.images || []).map((im: any, i: number) => (
+          <figure key={i} className="mel-gimg">{im.url ? <img src={im.url} alt={im.alt || ''} loading="lazy" /> : 'No image'}</figure>
+        ))}
+      </div>
+    );
+    case 'counter': return wrap(<div className="mel-counter">{s.prefix || ''}{s.number ?? 0}{s.suffix || ''}</div>);
+    case 'testimonial': return wrap(
+      <figure className="mel-testimonial">
+        <blockquote>{s.quote}</blockquote>
+        <figcaption><span className="mel-tname">{s.name}</span> <span className="mel-trole">{s.role}</span></figcaption>
+      </figure>
+    );
     default: return wrap(<div>?</div>);
   }
 }
