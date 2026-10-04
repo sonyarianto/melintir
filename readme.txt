@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.11.0:
+What you get in 0.12.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -29,6 +29,7 @@ What you get in 0.11.0:
 * Inline text editing (heading/button plain, text-widget rich HTML with
   format bar), right-click context menu, categorized searchable palette,
   one-click duplicate, nested selection highlight.
+* Scroll entrance animations + hover states for every node.
 * Entry points everywhere: Pages row actions, admin-bar shortcut,
   edit-screen notice (Gutenberg + Classic).
 * Gutenberg block to embed templates inside block/FSE content.
@@ -93,6 +94,12 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.12.0 =
+* Scroll entrance animations: 5 presets + delay for every node, single
+  render_node decorator, reduced-motion safe, invisible-content-proof.
+* Hover state scope (background, text, shadow) for every node, desktop
+  scope, full style_decls fidelity, nested scopes stripped.
 
 = 0.11.0 =
 * Editor-feel release: inline text editing (plain + rich HTML with format
