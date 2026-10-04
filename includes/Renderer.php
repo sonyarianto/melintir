@@ -967,6 +967,7 @@ class Renderer {
 	private static function render_star_rating( $cls, $sett ) {
 		$rating = isset( $sett['rating'] ) ? max( 0, min( 5, floatval( $sett['rating'] ) ) ) : 5;
 		$width  = round( $rating / 5 * 100, 1 );
+		/* translators: %s = numeric rating, e.g. 4.5. */
 		return '<div class="mel-stars-static ' . esc_attr( $cls ) . '" role="img" aria-label="' . esc_attr( sprintf( __( 'Rated %s out of 5', 'melintir' ), $rating ) ) . '">'
 			. '<span class="mel-stars-bg">★★★★★</span>'
 			. '<span class="mel-stars-fg" style="width:' . esc_attr( (string) $width ) . '%">★★★★★</span></div>';

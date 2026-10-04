@@ -246,11 +246,11 @@ class Migrator {
 	public static function migrate_post( $post_id, $dry_run = false ) {
 		$raw = get_post_meta( $post_id, '_elementor_data', true );
 		if ( empty( $raw ) ) {
-			return new \WP_Error( 'no_elementor', 'No Elementor data on this post', array( 'status' => 404 ) );
+			return new \WP_Error( 'no_elementor', __('No Elementor data on this post', 'melintir'), array( 'status' => 404 ) );
 		}
 		$data = is_string( $raw ) ? json_decode( $raw, true ) : $raw;
 		if ( ! is_array( $data ) ) {
-			return new \WP_Error( 'bad_elementor', 'Elementor data is not valid JSON', array( 'status' => 400 ) );
+			return new \WP_Error( 'bad_elementor', __('Elementor data is not valid JSON', 'melintir'), array( 'status' => 400 ) );
 		}
 		$result = self::convert( $data );
 		if ( $dry_run ) {

@@ -46,10 +46,10 @@ class Patterns {
 	public static function save_new( $name, $node ) {
 		$name = substr( sanitize_text_field( (string) $name ), 0, 60 );
 		if ( '' === $name ) {
-			return new \WP_Error( 'invalid', 'Pattern name is required', array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid', __('Pattern name is required', 'melintir'), array( 'status' => 400 ) );
 		}
 		if ( ! is_array( $node ) ) {
-			return new \WP_Error( 'invalid', 'Pattern node is required', array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid', __('Pattern node is required', 'melintir'), array( 'status' => 400 ) );
 		}
 		list( $clean, $errors ) = Security::sanitize_pattern_node( $node );
 		if ( null === $clean ) {
@@ -71,7 +71,7 @@ class Patterns {
 			}
 		}
 		if ( '' === $pid ) {
-			return new \WP_Error( 'full', 'Could not allocate a pattern ID', array( 'status' => 500 ) );
+			return new \WP_Error( 'full', __('Could not allocate a pattern ID', 'melintir'), array( 'status' => 500 ) );
 		}
 		array_unshift(
 			$all,
@@ -98,7 +98,7 @@ class Patterns {
 	public static function update( $pid, $node ) {
 		$pid = preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $pid );
 		if ( ! is_array( $node ) ) {
-			return new \WP_Error( 'invalid', 'Pattern node is required', array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid', __('Pattern node is required', 'melintir'), array( 'status' => 400 ) );
 		}
 		list( $clean, $errors ) = Security::sanitize_pattern_node( $node );
 		if ( null === $clean ) {
@@ -114,7 +114,7 @@ class Patterns {
 		}
 		unset( $p );
 		if ( ! $found ) {
-			return new \WP_Error( 'not_found', 'Pattern not found', array( 'status' => 404 ) );
+			return new \WP_Error( 'not_found', __('Pattern not found', 'melintir'), array( 'status' => 404 ) );
 		}
 		// Dry-run expansion against the new content: cycles die here.
 		$map         = self::map();
@@ -166,7 +166,8 @@ class Patterns {
 		if ( ! empty( $usages ) ) {
 			return new \WP_Error(
 				'in_use',
-				sprintf( 'Pattern is used by %d page(s). Unlink them first.', count( $usages ) ),
+				/* translators: %d = number of pages using the pattern. */
+				sprintf( __( 'Pattern is used by %d page(s). Unlink them first.', 'melintir' ), count( $usages ) ),
 				array( 'status' => 409, 'pages' => array_slice( $usages, 0, 20 ) )
 			);
 		}

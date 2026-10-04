@@ -1,0 +1,387 @@
+# Copyright (C) 2026 Melintir
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Melintir 0.15.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/melintir\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-04T15:47:30+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: melintir\n"
+
+#. Plugin Name of the plugin
+#. Author of the plugin
+#: melintir.php
+#: includes/Plugin.php:44
+#: includes/Plugin.php:45
+msgid "Melintir"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: melintir.php
+msgid "https://github.com/melintir/melintir"
+msgstr ""
+
+#. Description of the plugin
+#: melintir.php
+msgid "Open-source page builder with Rust/WASM brain. Container-only, fast frontend (<30KB JS)."
+msgstr ""
+
+#: includes/Form.php:33
+msgid "Form Entries"
+msgstr ""
+
+#: includes/Form.php:34
+msgid "Form Entry"
+msgstr ""
+
+#. translators: %s: page title
+#: includes/Form.php:111
+#, php-format
+msgid "Entry from %s"
+msgstr ""
+
+#: includes/Form.php:112
+msgid "(unknown page)"
+msgstr ""
+
+#: includes/Form.php:130
+msgid "New form entry"
+msgstr ""
+
+#: includes/Form.php:176
+msgid "You cannot export entries."
+msgstr ""
+
+#: includes/Form.php:215
+msgid "Export CSV"
+msgstr ""
+
+#: includes/Migrator.php:249
+msgid "No Elementor data on this post"
+msgstr ""
+
+#: includes/Migrator.php:253
+msgid "Elementor data is not valid JSON"
+msgstr ""
+
+#: includes/Patterns.php:49
+msgid "Pattern name is required"
+msgstr ""
+
+#: includes/Patterns.php:52
+#: includes/Patterns.php:101
+msgid "Pattern node is required"
+msgstr ""
+
+#: includes/Patterns.php:74
+msgid "Could not allocate a pattern ID"
+msgstr ""
+
+#: includes/Patterns.php:117
+msgid "Pattern not found"
+msgstr ""
+
+#. translators: %d = number of pages using the pattern.
+#: includes/Patterns.php:170
+#, php-format
+msgid "Pattern is used by %d page(s). Unlink them first."
+msgstr ""
+
+#: includes/Plugin.php:54
+#: includes/Plugin.php:76
+msgid "Melintir Settings"
+msgstr ""
+
+#: includes/Plugin.php:55
+msgid "Settings"
+msgstr ""
+
+#: includes/Plugin.php:64
+msgid "You cannot manage settings."
+msgstr ""
+
+#: includes/Plugin.php:72
+msgid "Settings saved."
+msgstr ""
+
+#: includes/Plugin.php:79
+msgid "Turnstile site key"
+msgstr ""
+
+#: includes/Plugin.php:80
+msgid "Turnstile secret key"
+msgstr ""
+
+#: includes/Plugin.php:81
+msgid "Cloudflare Turnstile keys. Per-form opt-in lives in the form widget inspector. Empty keys = Turnstile off."
+msgstr ""
+
+#: includes/Plugin.php:82
+msgid "Builder access"
+msgstr ""
+
+#: includes/Plugin.php:94
+msgid "Allowed roles"
+msgstr ""
+
+#: includes/Plugin.php:100
+msgid "Who sees the Melintir menu and can use the builder. Administrators always keep access. Empty selection = anyone with edit_posts (WordPress default)."
+msgstr ""
+
+#: includes/Plugin.php:107
+msgid "You are not allowed to use the Melintir builder."
+msgstr ""
+
+#: includes/Plugin.php:111
+msgid "You cannot edit this post."
+msgstr ""
+
+#: includes/Plugin.php:116
+msgid "Pick a page to edit:"
+msgstr ""
+
+#: includes/Plugin.php:129
+msgid "Create new page first, then come back here."
+msgstr ""
+
+#: includes/Plugin.php:135
+msgid "Melintir Editor"
+msgstr ""
+
+#: includes/Plugin.php:173
+#: includes/Plugin.php:201
+#: includes/Plugin.php:228
+#: includes/Theme.php:76
+#: includes/Theme.php:77
+#: includes/Theme.php:161
+msgid "Edit with Melintir"
+msgstr ""
+
+#: includes/Plugin.php:226
+msgid "Design this content visually: "
+msgstr ""
+
+#: includes/Renderer.php:566
+msgid "No posts found."
+msgstr ""
+
+#: includes/Renderer.php:598
+msgid "Install and activate WooCommerce to display products."
+msgstr ""
+
+#: includes/Renderer.php:642
+msgid "No products found."
+msgstr ""
+
+#: includes/Renderer.php:659
+msgid "Sale!"
+msgstr ""
+
+#: includes/Renderer.php:827
+msgid "Install and activate WooCommerce to display this block."
+msgstr ""
+
+#: includes/Renderer.php:842
+msgid "Pick a target date."
+msgstr ""
+
+#: includes/Renderer.php:855
+msgid "hrs"
+msgstr ""
+
+#: includes/Renderer.php:856
+msgid "min"
+msgstr ""
+
+#: includes/Renderer.php:857
+msgid "sec"
+msgstr ""
+
+#. translators: %s = numeric rating, e.g. 4.5.
+#: includes/Renderer.php:971
+#, php-format
+msgid "Rated %s out of 5"
+msgstr ""
+
+#: includes/Renderer.php:991
+msgid "Select a menu"
+msgstr ""
+
+#: includes/Renderer.php:995
+msgid "Menu is empty"
+msgstr ""
+
+#: includes/Renderer.php:999
+msgid "Menu"
+msgstr ""
+
+#: includes/Rest.php:154
+#: includes/Rest.php:217
+msgid "Document too large"
+msgstr ""
+
+#: includes/Rest.php:253
+msgid "Revision not found"
+msgstr ""
+
+#. translators: %d = template post ID.
+#: includes/Rest.php:290
+#, php-format
+msgid "Template #%d"
+msgstr ""
+
+#: includes/Theme.php:60
+msgid "Theme Templates"
+msgstr ""
+
+#: includes/Theme.php:61
+msgid "Theme Template"
+msgstr ""
+
+#: includes/Theme.php:62
+msgid "Add New Template"
+msgstr ""
+
+#: includes/Theme.php:90
+msgid "You cannot edit templates."
+msgstr ""
+
+#: includes/Theme.php:99
+msgid "Edit Theme Template"
+msgstr ""
+
+#: includes/Theme.php:101
+msgid "No templates yet. Create a header or footer first."
+msgstr ""
+
+#: includes/Theme.php:117
+msgid "Template Location"
+msgstr ""
+
+#: includes/Theme.php:127
+msgid "Displays as:"
+msgstr ""
+
+#: includes/Theme.php:129
+#: assets/blocks/template.js:50
+msgid "— Select —"
+msgstr ""
+
+#: includes/Theme.php:129
+msgid "Site Header"
+msgstr ""
+
+#: includes/Theme.php:129
+msgid "Site Footer"
+msgstr ""
+
+#: includes/Theme.php:129
+msgid "Popup"
+msgstr ""
+
+#: includes/Theme.php:129
+msgid "Single Product"
+msgstr ""
+
+#: includes/Theme.php:129
+msgid "Product Archive"
+msgstr ""
+
+#: includes/Theme.php:133
+msgid "Rule decides where this template displays. Specific rules beat Entire Site."
+msgstr ""
+
+#: includes/Theme.php:138
+msgid "Display rule:"
+msgstr ""
+
+#: includes/Theme.php:151
+msgid "Popup trigger (popups only):"
+msgstr ""
+
+#: includes/Theme.php:152
+msgid "On page load after delay"
+msgstr ""
+
+#: includes/Theme.php:153
+msgid "On click of elements matching selector"
+msgstr ""
+
+#: includes/Theme.php:154
+msgid "Delay (seconds):"
+msgstr ""
+
+#: includes/Theme.php:155
+msgid "Click selector (e.g. .open-promo):"
+msgstr ""
+
+#: includes/Theme.php:156
+msgid "Frequency:"
+msgstr ""
+
+#: includes/Theme.php:157
+msgid "Every page view"
+msgstr ""
+
+#: includes/Theme.php:157
+msgid "Once per session"
+msgstr ""
+
+#: includes/Theme.php:207
+msgid "Front Page"
+msgstr ""
+
+#: includes/Theme.php:208
+msgid "Blog Home"
+msgstr ""
+
+#: includes/Theme.php:209
+msgid "All Pages"
+msgstr ""
+
+#: includes/Theme.php:210
+msgid "All Posts"
+msgstr ""
+
+#: includes/Theme.php:211
+msgid "All Products"
+msgstr ""
+
+#: includes/Theme.php:212
+msgid "All Archives"
+msgstr ""
+
+#: includes/Theme.php:213
+msgid "Product Archives"
+msgstr ""
+
+#: includes/Theme.php:214
+msgid "Entire Site"
+msgstr ""
+
+#: includes/Theme.php:323
+msgid "Melintir Canvas"
+msgstr ""
+
+#: includes/Theme.php:387
+msgid "Close"
+msgstr ""
+
+#: assets/blocks/template.js:30
+#: assets/blocks/template.js:60
+msgid "Melintir Template"
+msgstr ""
+
+#: assets/blocks/template.js:31
+msgid "Embed a Melintir theme template."
+msgstr ""
+
+#: assets/blocks/template.js:62
+msgid "Loading…"
+msgstr ""

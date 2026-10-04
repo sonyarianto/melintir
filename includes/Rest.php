@@ -151,7 +151,7 @@ class Rest {
 			$doc = $doc['doc'];
 		}
 		if ( strlen( wp_json_encode( $doc ) ) > Security::MAX_JSON_BYTES ) {
-			return new \WP_Error( 'too_large', 'Document too large', array( 'status' => 413 ) );
+			return new \WP_Error( 'too_large', __('Document too large', 'melintir'), array( 'status' => 413 ) );
 		}
 
 		list( $clean, $errors ) = Security::sanitize_document( $doc );
@@ -214,7 +214,7 @@ class Rest {
 			$doc = $doc['doc'];
 		}
 		if ( strlen( wp_json_encode( $doc ) ) > Security::MAX_JSON_BYTES ) {
-			return new \WP_Error( 'too_large', 'Document too large', array( 'status' => 413 ) );
+			return new \WP_Error( 'too_large', __('Document too large', 'melintir'), array( 'status' => 413 ) );
 		}
 		list( $clean, $errors ) = Security::sanitize_document( $doc );
 		if ( null === $clean ) {
@@ -250,7 +250,7 @@ class Rest {
 			if ( is_array( $auto ) && isset( $auto['ts'] ) && (string) $auto['ts'] === (string) $rev && isset( $auto['doc'] ) ) {
 				return rest_ensure_response( array( 'doc' => $auto['doc'], 'ts' => $auto['ts'] ) );
 			}
-			return new \WP_Error( 'not_found', 'Revision not found', array( 'status' => 404 ) );
+			return new \WP_Error( 'not_found', __('Revision not found', 'melintir'), array( 'status' => 404 ) );
 		}
 		$auto = get_post_meta( $id, '_melintir_autosave', true );
 		$auto = is_array( $auto ) ? $auto : ( is_string( $auto ) ? json_decode( $auto, true ) : null );
@@ -286,6 +286,7 @@ class Rest {
 		foreach ( $posts as $p ) {
 			$out[] = array(
 				'id'       => $p->ID,
+				/* translators: %d = template post ID. */
 				'title'    => $p->post_title ? $p->post_title : sprintf( __( 'Template #%d', 'melintir' ), $p->ID ),
 				'location' => (string) get_post_meta( $p->ID, Theme::LOC_META, true ),
 				'status'   => $p->post_status,
