@@ -22,7 +22,7 @@ export interface MelNode {
 export interface MelDoc {
   version: string;
   root: MelNode;
-  globals: { colors: Record<string, string>; breakpoints: { tablet: number; mobile: number } };
+  globals: { colors: Record<string, string>; fonts?: Record<string, string>; breakpoints: { tablet: number; mobile: number } };
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);

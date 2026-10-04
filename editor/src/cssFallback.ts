@@ -40,6 +40,17 @@ export function generateCssFallback(doc: MelDoc): string {
     if (t.size != null) d += `font-size:${t.size | 0}px;`;
     if (t.weight != null) d += `font-weight:${t.weight | 0};`;
     if (colorOk(t.color)) d += `color:${t.color};`;
+    if (typeof t.family === 'string') {
+      const stacks: Record<string, string> = {
+        'system-sans': `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
+        'system-serif': `Georgia, 'Times New Roman', serif`,
+        'system-mono': `ui-monospace, Menlo, Consolas, monospace`,
+        'display': `Impact, 'Arial Narrow', sans-serif`,
+        'handwriting': `'Comic Sans MS', 'Chalkboard SE', cursive`,
+      };
+      const f = resolveFont(t.family, stacks);
+      if (f) d += `font-family:${f};`;
+    }
     if (typeof s.customCss === 'string' && s.customCss.trim()) {
       const c = s.customCss.replace(/<\/?style[^>]*>/gi, '').replace(/<script[^>]*>.*?<\/script>/gis, '').slice(0, 2048).trim().replace(/;?$/, ';');
       d += c;
@@ -60,5 +71,28 @@ function globalsCss(doc: MelDoc): string {
       decls += `--mel-${clean}:${value};`;
     }
   }
+  const stacks: Record<string, string> = {
+    'system-sans': `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
+    'system-serif': `Georgia, 'Times New Roman', serif`,
+    'system-mono': `ui-monospace, Menlo, Consolas, monospace`,
+    'display': `Impact, 'Arial Narrow', sans-serif`,
+    'handwriting': `'Comic Sans MS', 'Chalkboard SE', cursive`,
+  };
+  const fonts = (doc as any)?.globals?.fonts;
+  if (fonts && typeof fonts === 'object') {
+    for (const [name, stack] of Object.entries(fonts).slice(0, 20)) {
+      const clean = String(name).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+      const resolved = typeof stack === 'string' ? resolveFont(stack, stacks) : null;
+      if (clean && resolved) decls += `--mel-font-${clean}:${resolved};`;
+    }
+  }
   return decls ? `:root{${decls}}\n` : '';
+}
+
+function resolveFont(s: string, stacks: Record<string, string>): string | null {
+  if (stacks[s]) return stacks[s];
+  if (/^var\(--mel-font-[a-z0-9-]+\)$/.test(s)) return s;
+  const t = s.trim().slice(0, 200);
+  if (t && /^[a-zA-Z0-9 ,'"-]+$/.test(t)) return t;
+  return null;
 }

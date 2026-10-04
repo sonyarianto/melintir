@@ -238,7 +238,7 @@ export default function App() {
             <button key={w} onClick={() => addWidget(w)}>{w}</button>
           ))}
         </div>
-        <GlobalsPanel colors={doc.globals?.colors || {}} onChange={setGlobals} />
+        <GlobalsPanel colors={doc.globals?.colors || {}} fonts={doc.globals?.fonts || {}} onChange={setGlobals} />
         <h4>Templates</h4>
         <div className="mel-row">
           <button onClick={exportJson}>⬇ Export</button>
@@ -376,6 +376,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
               {[400, 600, 700, 800].map((w) => <option key={w} value={w}>{w}</option>)}
             </select>
           </Field>
+          <FontField value={T.family || ''} globals={globals} onChange={(v) => onStyle({ typo: { family: v } })} />
           <Field label="Color">
             <ColorField value={T.color || ''} globals={globals} fallback="#0f172a" onChange={(v) => onStyle({ typo: { color: v } })} />
           </Field>
@@ -599,6 +600,9 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
       {(node.widgetType === 'text' || node.widgetType === 'button') && (
         <Field label="Text size (px)"><Num value={T.size} onChange={(v) => onStyle({ typo: { size: v } })} /></Field>
       )}
+      {(node.widgetType === 'text' || node.widgetType === 'button') && (
+        <FontField value={T.family || ''} globals={globals} onChange={(v) => onStyle({ typo: { family: v } })} />
+      )}
     </div>
   );
 }
@@ -706,13 +710,42 @@ function ColorField({ value, globals, fallback, onChange }: {
   );
 }
 
-/** Global palette: name + hex rows, add/remove. Change propagates via CSS vars. */
-function GlobalsPanel({ colors, onChange }: {
+/** Font picker: curated stacks + global font tokens. */
+function FontField({ value, globals, onChange }: {
+  value: string;
+  globals: Record<string, string>;
+  onChange: (v: string) => void;
+}) {
+  const names = Object.keys(globals || {});
+  return (
+    <Field label="Font">
+      <select value={value || ''} onChange={(e) => onChange(e.target.value)}>
+        <option value="">default</option>
+        {FONT_STACK_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+        {names.map((n) => <option key={n} value={`var(--mel-font-${n})`}>🌐 {n}</option>)}
+      </select>
+    </Field>
+  );
+}
+
+/** Global palette: colors + fonts, add/remove. Change propagates via CSS vars. */
+export const FONT_STACK_OPTIONS = [
+  { key: 'system-sans', label: 'System Sans', stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` },
+  { key: 'system-serif', label: 'System Serif', stack: `Georgia, 'Times New Roman', serif` },
+  { key: 'system-mono', label: 'System Mono', stack: `ui-monospace, Menlo, Consolas, monospace` },
+  { key: 'display', label: 'Display', stack: `Impact, 'Arial Narrow', sans-serif` },
+  { key: 'handwriting', label: 'Handwriting', stack: `'Comic Sans MS', 'Chalkboard SE', cursive` },
+];
+
+function GlobalsPanel({ colors, fonts, onChange }: {
   colors: Record<string, string>;
-  onChange: (c: Record<string, string>) => void;
+  fonts: Record<string, string>;
+  onChange: (p: { colors?: Record<string, string>; fonts?: Record<string, string> }) => void;
 }) {
   const [name, setName] = useState('accent');
   const [hex, setHex] = useState('#2563eb');
+  const [fname, setFname] = useState('heading');
+  const [fstack, setFstack] = useState('system-serif');
   const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
   return (
     <>
@@ -723,9 +756,9 @@ function GlobalsPanel({ colors, onChange }: {
           <input
             type="color"
             value={isHex6(h) ? h : '#000000'}
-            onChange={(e) => onChange({ ...colors, [n]: e.target.value })}
+            onChange={(e) => onChange({ colors: { ...colors, [n]: e.target.value } })}
           />
-          <button onClick={() => { const c = { ...colors }; delete c[n]; onChange(c); }}>✕</button>
+          <button onClick={() => { const c = { ...colors }; delete c[n]; onChange({ colors: c }); }}>✕</button>
         </div>
       ))}
       <div className="mel-row">
@@ -733,7 +766,25 @@ function GlobalsPanel({ colors, onChange }: {
         <input type="color" value={isHex6(hex) ? hex : '#2563eb'} onChange={(e) => setHex(e.target.value)} />
         <button onClick={() => {
           const k = slug(name);
-          if (k && isHex6(hex)) onChange({ ...colors, [k]: hex });
+          if (k && isHex6(hex)) onChange({ colors: { ...colors, [k]: hex } });
+        }}>+</button>
+      </div>
+      <h4>Fonts</h4>
+      {Object.entries(fonts || {}).map(([n, f]) => (
+        <div key={n} className="mel-row">
+          <span className="mel-status" title={`var(--mel-font-${n})`}>{n}</span>
+          <span className="mel-status">{String(f).slice(0, 24)}</span>
+          <button onClick={() => { const c = { ...(fonts || {}) }; delete c[n]; onChange({ fonts: c }); }}>✕</button>
+        </div>
+      ))}
+      <div className="mel-row">
+        <input placeholder="name" value={fname} onChange={(e) => setFname(e.target.value)} />
+        <select value={fstack} onChange={(e) => setFstack(e.target.value)}>
+          {FONT_STACK_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+        </select>
+        <button onClick={() => {
+          const k = slug(fname);
+          if (k) onChange({ fonts: { ...(fonts || {}), [k]: fstack } });
         }}>+</button>
       </div>
     </>

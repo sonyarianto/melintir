@@ -21,6 +21,15 @@ class Security {
 	const MAX_DEPTH = 6;
 	const MAX_JSON_BYTES = 500 * 1024;
 
+	/** Curated system stacks (safe values; keys are stored in typo.family). */
+	const FONT_STACKS = array(
+		'system-sans'   => "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+		'system-serif'  => "Georgia, 'Times New Roman', serif",
+		'system-mono'   => "ui-monospace, Menlo, Consolas, monospace",
+		'display'       => "Impact, 'Arial Narrow', sans-serif",
+		'handwriting'   => "'Comic Sans MS', 'Chalkboard SE', cursive",
+	);
+
 	/**
 	 * @param int $post_id
 	 * @return bool
@@ -71,6 +80,7 @@ class Security {
 			'root'    => $clean_root,
 			'globals' => array(
 				'colors'      => self::sanitize_color_map( isset( $globals['colors'] ) ? $globals['colors'] : array() ),
+				'fonts'       => self::sanitize_font_map( isset( $globals['fonts'] ) ? $globals['fonts'] : array() ),
 				'breakpoints' => array(
 					'tablet' => 1024,
 					'mobile' => 767,
@@ -381,6 +391,12 @@ class Security {
 					$typo['color'] = '#0f172a';
 				}
 			}
+			if ( isset( $style['typo']['family'] ) ) {
+				$fam = self::sanitize_font( $style['typo']['family'] );
+				if ( '' !== $fam ) {
+					$typo['family'] = $fam;
+				}
+			}
 			if ( ! empty( $typo ) ) {
 				$out['typo'] = $typo;
 			}
@@ -426,6 +442,45 @@ class Security {
 			$k = sanitize_key( (string) $k );
 			if ( sanitize_hex_color( (string) $v ) ) {
 				$out[ $k ] = (string) $v;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A font reference is either a curated stack key, a var(--mel-font-*)
+	 * token, or a custom stack of safe characters (no parens/url/braces).
+	 *
+	 * @param string $font
+	 * @return string sanitized value or empty string
+	 */
+	public static function sanitize_font( $font ) {
+		$font = trim( substr( (string) $font, 0, 200 ) );
+		if ( '' === $font ) {
+			return '';
+		}
+		if ( isset( self::FONT_STACKS[ $font ] ) ) {
+			return $font;
+		}
+		if ( preg_match( '/^var\(--mel-font-[a-z0-9-]+\)$/', $font ) ) {
+			return $font;
+		}
+		if ( preg_match( '/^[a-zA-Z0-9 ,\'"-]+$/', $font ) ) {
+			return $font;
+		}
+		return '';
+	}
+
+	private static function sanitize_font_map( $fonts ) {
+		if ( ! is_array( $fonts ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( array_slice( $fonts, 0, 20 ) as $k => $v ) {
+			$k = sanitize_key( (string) $k );
+			$v = self::sanitize_font( $v );
+			if ( '' !== $k && '' !== $v ) {
+				$out[ $k ] = $v;
 			}
 		}
 		return $out;

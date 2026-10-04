@@ -38,11 +38,61 @@ fn globals_css(doc: &Document) -> String {
             }
         }
     }
+    if let Some(fonts) = doc.globals.get("fonts").and_then(|v| v.as_object()) {
+        for (name, stack) in fonts.iter().take(20) {
+            let clean_name: String = name
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                .take(32)
+                .collect();
+            if clean_name.is_empty() {
+                continue;
+            }
+            if let Some(stack) = stack.as_str() {
+                if let Some(resolved) = resolve_font(stack) {
+                    decls.push_str(&format!("--mel-font-{clean_name}:{resolved};"));
+                }
+            }
+        }
+    }
     if decls.is_empty() {
         String::new()
     } else {
         format!(":root{{{decls}}}\n")
     }
+}
+
+const FONT_STACKS: &[(&str, &str)] = &[
+    ("system-sans", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"),
+    ("system-serif", "Georgia, 'Times New Roman', serif"),
+    ("system-mono", "ui-monospace, Menlo, Consolas, monospace"),
+    ("display", "Impact, 'Arial Narrow', sans-serif"),
+    ("handwriting", "'Comic Sans MS', 'Chalkboard SE', cursive"),
+];
+
+/// Curated key -> stack; var(--mel-font-*) and safe custom stacks pass through.
+fn resolve_font(s: &str) -> Option<String> {
+    if let Some((_, stack)) = FONT_STACKS.iter().find(|(k, _)| *k == s) {
+        return Some(stack.to_string());
+    }
+    if s.starts_with("var(--mel-font-") && s.ends_with(')') {
+        let name = &s[13..s.len() - 1];
+        if !name.is_empty()
+            && name.len() <= 32
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return Some(s.to_string());
+        }
+        return None;
+    }
+    let s = s.trim();
+    if !s.is_empty()
+        && s.len() <= 200
+        && s.chars().all(|c| c.is_ascii_alphanumeric() || " ,'\"-".contains(c))
+    {
+        return Some(s.to_string());
+    }
+    None
 }
 
 fn is_hex_color(s: &str) -> bool {
@@ -136,6 +186,11 @@ fn style_decls(style: &Style) -> String {
     if let Some(v) = style.typo.get("color") {
         if let Some(c) = sanitize_color(v) {
             d.push_str(&format!("color:{c};"));
+        }
+    }
+    if let Some(v) = style.typo.get("family").and_then(|v| v.as_str()) {
+        if let Some(f) = resolve_font(v) {
+            d.push_str(&format!("font-family:{f};"));
         }
     }
     if let Some(raw) = style.custom_css.as_deref() {

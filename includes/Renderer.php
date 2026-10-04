@@ -323,6 +323,19 @@ class Renderer {
 			}
 			$decls .= '--mel-' . $name . ':' . (string) $value . ';';
 		}
+		$fonts = isset( $doc['globals']['fonts'] ) && is_array( $doc['globals']['fonts'] ) ? $doc['globals']['fonts'] : array();
+		foreach ( array_slice( $fonts, 0, 20 ) as $name => $stack ) {
+			$name  = sanitize_key( (string) $name );
+			$stack = Security::sanitize_font( $stack );
+			if ( '' === $name || '' === $stack ) {
+				continue;
+			}
+			// Curated keys resolve to their stacks; custom stacks pass through.
+			if ( isset( Security::FONT_STACKS[ $stack ] ) ) {
+				$stack = Security::FONT_STACKS[ $stack ];
+			}
+			$decls .= '--mel-font-' . $name . ':' . $stack . ';';
+		}
 		return '' !== $decls ? ':root{' . $decls . "}\n" : '';
 	}
 
@@ -403,6 +416,15 @@ class Renderer {
 				$tc = Security::sanitize_color( $t['color'] );
 				if ( '' !== $tc ) {
 					$d .= 'color:' . $tc . ';';
+				}
+			}
+			if ( isset( $t['family'] ) ) {
+				$tf = Security::sanitize_font( $t['family'] );
+				if ( '' !== $tf ) {
+					if ( isset( Security::FONT_STACKS[ $tf ] ) ) {
+						$tf = Security::FONT_STACKS[ $tf ];
+					}
+					$d .= 'font-family:' . $tf . ';';
 				}
 			}
 		}
