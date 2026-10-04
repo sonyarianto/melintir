@@ -46,6 +46,7 @@ export default function App() {
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
   const [bp, setBp] = useState<BP>('desktop');
+  const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
 
   useEffect(() => {
     initWasm().then(setWasmOk);
@@ -60,6 +61,12 @@ export default function App() {
           } else setStatus('new document');
         })
         .catch(() => setStatus('new document (offline)'));
+    }
+    if (d?.templatesUrl) {
+      fetch(d.templatesUrl, { headers: { 'X-WP-Nonce': d.nonce } })
+        .then((r) => r.json())
+        .then((j) => Array.isArray(j) && setTemplates(j))
+        .catch(() => {});
     }
   }, []);
 
@@ -86,6 +93,30 @@ export default function App() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const exportJson = () => {
+    const d: any = (window as any).MelintirData;
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `melintir-${d?.postId || 'doc'}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+
+  const importJson = (file: File) => {
+    file.text().then((text) => {
+      try {
+        const parsed = JSON.parse(text);
+        const candidate = parsed?.root ? parsed : parsed?.doc?.root ? parsed.doc : null;
+        if (!candidate?.root) throw new Error('bad shape');
+        load(candidate);
+        setStatus(`imported ${file.name}`);
+      } catch {
+        setStatus(`import failed: ${file.name} is not a Melintir doc`);
+      }
+    });
   };
 
   const sel: MelNode | null = useMemo(() => {
@@ -148,6 +179,32 @@ export default function App() {
             <button key={w} onClick={() => addWidget(w)}>{w}</button>
           ))}
         </div>
+        <h4>Templates</h4>
+        <div className="mel-row">
+          <button onClick={exportJson}>⬇ Export</button>
+          <label className="mel-upload">
+            ⬆ Import
+            <input
+              type="file"
+              accept=".json,application/json"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importJson(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        {templates.length > 0 && (
+          <div className="mel-grid">
+            {templates.map((t) => (
+              <button key={t.name} title="Replace canvas with this template" onClick={() => { load(t.doc); setStatus(`template: ${t.name}`); }}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
         {sel && (
           <Inspector
             node={sel}

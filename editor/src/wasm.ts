@@ -8,7 +8,7 @@ let useWasm = false;
 
 declare global {
   interface Window {
-    MelintirData?: { postId: number; restUrl: string; nonce: string; wasmUrl: string; wasmJs: string };
+    MelintirData?: { postId: number; restUrl: string; templatesUrl?: string; nonce: string; wasmUrl: string; wasmJs: string };
   }
 }
 
