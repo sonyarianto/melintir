@@ -1,21 +1,62 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type DragEvent } from 'react';
 import type { MelNode } from './types';
 
-export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selected: boolean; onSelect: (id: string) => void }) {
+/** Drag-and-drop context threaded from App (absent = static preview). */
+export interface DndCtx {
+  dragging: boolean;
+  overSlot: string | null;
+  onNodeDragStart: (id: string, e: DragEvent) => void;
+  onSlotOver: (parentId: string, index: number, e: DragEvent) => void;
+  onSlotLeave: () => void;
+  onSlotDrop: (parentId: string, index: number, e: DragEvent) => void;
+  onDragEnd: () => void;
+}
+
+/** Insertion gap rendered between siblings (and around them) while dragging. */
+export function DropSlot({ parentId, index, dnd }: { parentId: string; index: number; dnd?: DndCtx }) {
+  if (!dnd || !dnd.dragging) return null;
+  const key = `${parentId}:${index}`;
+  return (
+    <div
+      className={`mel-slot${dnd.overSlot === key ? ' mel-over' : ''}`}
+      onDragOver={(e) => dnd.onSlotOver(parentId, index, e)}
+      onDragLeave={dnd.onSlotLeave}
+      onDrop={(e) => dnd.onSlotDrop(parentId, index, e)}
+    />
+  );
+}
+
+export function PreviewNode({ node, selected, onSelect, dnd }: { node: MelNode; selected: boolean; onSelect: (id: string) => void; dnd?: DndCtx }) {
   const cls = `mel-${node.id}${selected ? ' mel-selected' : ''}`;
   if (node.elType === 'container') {
     return (
-      <div className={`mel-container ${cls}`} onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}>
-        {node.elements.map((c) => (
-          <PreviewNode key={c.id} node={c} selected={false} onSelect={onSelect} />
+      <div
+        className={`mel-container ${cls}${dnd ? ' mel-draggable' : ''}`}
+        draggable={!!dnd}
+        onDragStart={(e) => { e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
+        onDragEnd={dnd?.onDragEnd}
+        onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+      >
+        {(node.elements || []).map((c, i) => (
+          <Fragment key={c.id}>
+            <DropSlot parentId={node.id} index={i} dnd={dnd} />
+            <PreviewNode node={c} selected={false} onSelect={onSelect} dnd={dnd} />
+          </Fragment>
         ))}
-        {node.elements.length === 0 && <div className="mel-empty">Empty container</div>}
+        <DropSlot parentId={node.id} index={(node.elements || []).length} dnd={dnd} />
+        {node.elements.length === 0 && <div className="mel-empty">Empty container — drop blocks here</div>}
       </div>
     );
   }
   const s = node.settings || {};
   const wrap = (inner: React.ReactNode) => (
-    <div className={cls} onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}>{inner}</div>
+    <div
+      className={`${cls}${dnd ? ' mel-draggable' : ''}`}
+      draggable={!!dnd}
+      onDragStart={(e) => { e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
+      onDragEnd={dnd?.onDragEnd}
+      onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+    >{inner}</div>
   );
   switch (node.widgetType) {
     case 'heading': {

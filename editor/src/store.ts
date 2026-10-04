@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { blankDoc, uid, type MelDoc, type MelNode, type WidgetType } from './types';
+import { insertAt, moveNode as moveTreeNode, siblingSlot } from './tree';
 
 interface EditorState {
   doc: MelDoc;
@@ -9,7 +10,10 @@ interface EditorState {
   dirty: boolean;
   setSelected: (id: string | null) => void;
   addWidget: (type: WidgetType) => void;
+  addWidgetAt: (type: WidgetType, parentId: string, index: number) => boolean;
   insertNode: (node: MelNode) => void;
+  moveNode: (dragId: string, parentId: string, index: number) => boolean;
+  nudgeSelected: (dir: -1 | 1) => void;
   updateNode: (id: string, patch: Partial<MelNode>) => void;
   removeNode: (id: string) => void;
   undo: () => void;
@@ -98,12 +102,47 @@ export const useEditor = create<EditorState>((set, get) => ({
       const node: MelNode = { id: uid(), elType: 'widget', widgetType: type, settings: d.settings || {}, style: (d.style as any) || {}, elements: [] };
       return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: node.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, node] } } };
     }),
+  addWidgetAt: (type, parentId, index) => {
+    const d = defaults(type);
+    const node: MelNode = { id: uid(), elType: 'widget', widgetType: type, settings: d.settings || {}, style: (d.style as any) || {}, elements: [] };
+    let ok = false;
+    set((s) => {
+      const root = insertAt(s.doc.root, parentId, index, node);
+      if (!root) return s;
+      ok = true;
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: node.id, doc: { ...s.doc, root } };
+    });
+    return ok;
+  },
   insertNode: (node) =>
     set((s) => {
       const remap = (n: MelNode): MelNode => ({ ...n, id: uid(), elements: (n.elements || []).map(remap) });
       const copy = remap(node);
       return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, copy] } } };
     }),
+  moveNode: (dragId, parentId, index) => {
+    let ok = false;
+    set((s) => {
+      const root = moveTreeNode(s.doc.root, dragId, parentId, index);
+      if (!root) return s;
+      ok = true;
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: dragId, doc: { ...s.doc, root } };
+    });
+    return ok;
+  },
+  nudgeSelected: (dir) => {
+    const { doc, selectedId } = get();
+    if (!selectedId) return;
+    const slot = siblingSlot(doc.root, selectedId);
+    if (!slot) return;
+    const next = slot.index + dir;
+    if (next < 0 || next >= slot.parent.elements.length) return;
+    // Detach-then-insert: after removal the list is shorter by one, so the
+    // precomputed sibling index is exactly the right insertion point.
+    const root = moveTreeNode(doc.root, selectedId, slot.parent.id, next);
+    if (!root) return;
+    set((s) => ({ past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, doc: { ...s.doc, root } }));
+  },
   updateNode: (id, patch) =>
     set((s) => {
       const root = mapNode(s.doc.root, id, (n) => ({ ...n, ...patch, style: { ...n.style, ...(patch.style || {}) }, settings: { ...n.settings, ...(patch.settings || {}) } }));

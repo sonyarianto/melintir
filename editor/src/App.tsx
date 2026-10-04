@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { useEditor } from './store';
 import { generateCss, initWasm, isWasm } from './wasm';
-import { PreviewNode, wpApiBase, wpApiUrl, type WpMenu } from './widgets';
+import { DropSlot, PreviewNode, wpApiBase, wpApiUrl, type DndCtx, type WpMenu } from './widgets';
 import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
@@ -41,11 +41,13 @@ function Num({ value, onChange }: { value: number | undefined; onChange: (v: num
 }
 
 export default function App() {
-  const { doc, selectedId, setSelected, addWidget, insertNode, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
+  const { doc, selectedId, setSelected, addWidget, addWidgetAt, insertNode, moveNode, nudgeSelected, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
   const [wasmOk, setWasmOk] = useState(false);
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
   const [bp, setBp] = useState<BP>('desktop');
+  const [dragPayload, setDragPayload] = useState<string | null>(null); // 'move:ID' | 'new:TYPE'
+  const [overSlot, setOverSlot] = useState<string | null>(null); // 'parentId:index'
   const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
   const [patterns, setPatterns] = useState<{ id: string; name: string; node: MelNode }[]>([]);
   const [pname, setPname] = useState('');
@@ -295,6 +297,56 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);
 
+  /** Drag-and-drop: palette buttons drag `new:TYPE`, canvas blocks `move:ID`. */
+  const startPaletteDrag = (type: WidgetType) => (e: DragEvent) => {
+    e.dataTransfer.setData('application/x-melintir', `new:${type}`);
+    e.dataTransfer.effectAllowed = 'copy';
+    setDragPayload(`new:${type}`);
+    setOverSlot(null);
+  };
+  const startMove = (id: string, e: DragEvent) => {
+    e.dataTransfer.setData('application/x-melintir', `move:${id}`);
+    e.dataTransfer.effectAllowed = 'move';
+    setDragPayload(`move:${id}`);
+    setOverSlot(null);
+    setSelected(id);
+  };
+  const slotOver = (parentId: string, index: number, e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = dragPayload?.startsWith('new:') ? 'copy' : 'move';
+    setOverSlot(`${parentId}:${index}`);
+  };
+  const slotDrop = (parentId: string, index: number, e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const raw = e.dataTransfer.getData('application/x-melintir') || dragPayload || '';
+    setDragPayload(null);
+    setOverSlot(null);
+    if (raw.startsWith('new:')) {
+      const type = raw.slice(4) as WidgetType;
+      if (!addWidgetAt(type, parentId, index)) setStatus('cannot drop there');
+      else setStatus(`added ${type}`);
+    } else if (raw.startsWith('move:')) {
+      const id = raw.slice(5);
+      if (!moveNode(id, parentId, index)) setStatus('cannot move there (depth limit or invalid target)');
+      else setStatus('moved');
+    }
+  };
+  const endDrag = () => {
+    setDragPayload(null);
+    setOverSlot(null);
+  };
+  const dnd: DndCtx = {
+    dragging: dragPayload !== null,
+    overSlot,
+    onNodeDragStart: startMove,
+    onSlotOver: slotOver,
+    onSlotLeave: () => setOverSlot(null),
+    onSlotDrop: slotDrop,
+    onDragEnd: endDrag,
+  };
+
   /** Merge a style patch into the active breakpoint scope. */
   const patchStyle = (node: MelNode, patch: Record<string, any>) => {
     const mergeInto = (target: Record<string, any>) => {
@@ -348,9 +400,10 @@ export default function App() {
         </div>
         <p className="mel-status">{status} · css {Math.round(ms * 100) / 100}ms · {bp}</p>
         <h4>Add</h4>
+        <p className="mel-status">click to append, or drag onto the canvas.</p>
         <div className="mel-grid">
           {PALETTE.map((w) => (
-            <button key={w} onClick={() => addWidget(w)}>{w}</button>
+            <button key={w} draggable onDragStart={startPaletteDrag(w)} onDragEnd={endDrag} onClick={() => addWidget(w)}>{w}</button>
           ))}
         </div>
         <GlobalsPanel colors={doc.globals?.colors || {}} fonts={doc.globals?.fonts || {}} onChange={setGlobals} />
@@ -394,6 +447,8 @@ export default function App() {
           <button disabled={!sel} onClick={() => copySelected(sel)}>⧉ Copy selected</button>
           <button onClick={pasteClipboard}>📋 Paste</button>
         </div>
+        <h4>Navigator</h4>
+        <Navigator root={doc.root} selectedId={selectedId} onSelect={setSelected} />
         {patterns.length > 0 && (
           <div className="mel-history">
             {patterns.map((p) => (
@@ -434,21 +489,27 @@ export default function App() {
             onSetting={(p) => setSetting(sel, p)}
             onRemove={() => removeNode(sel.id)}
             onCopy={() => copySelected(sel)}
+            onUp={() => nudgeSelected(-1)}
+            onDown={() => nudgeSelected(1)}
           />
         )}
       </aside>
       <main className="mel-canvas" onClick={() => setSelected(null)}>
         <div className="mel-page" style={{ maxWidth: bp === 'mobile' ? 390 : bp === 'tablet' ? 768 : 1100 }}>
-          {(doc.root.elements || []).map((n) => (
-            <PreviewNode key={n.id} node={n} selected={n.id === selectedId} onSelect={setSelected} />
+          {(doc.root.elements || []).map((n, i) => (
+            <Fragment key={n.id}>
+              <DropSlot parentId={doc.root.id} index={i} dnd={dnd} />
+              <PreviewNode node={n} selected={n.id === selectedId} onSelect={setSelected} dnd={dnd} />
+            </Fragment>
           ))}
+          <DropSlot parentId={doc.root.id} index={(doc.root.elements || []).length} dnd={dnd} />
         </div>
       </main>
     </div>
   );
 }
 
-function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onUp, onDown }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
@@ -457,6 +518,8 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
   onSetting: (p: Record<string, any>) => void;
   onRemove: () => void;
   onCopy: () => void;
+  onUp: () => void;
+  onDown: () => void;
 }) {
   const s = node.settings || {};
   const L = scope.layout;
@@ -466,6 +529,8 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
       <h4>
         {node.widgetType || node.elType}
         {bp !== 'desktop' && <span className="mel-bpbadge">· {bp}</span>}
+        <button title="Move up" onClick={onUp}>↑</button>
+        <button title="Move down" onClick={onDown}>↓</button>
         <button title="Copy block (Ctrl+C)" onClick={onCopy}>⧉</button>
         <button onClick={onRemove}>✕</button>
       </h4>
@@ -906,6 +971,45 @@ function ProductCatPicker({ value, onPick }: {
         {cats.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.count})</option>)}
       </select>
     </Field>
+  );
+}
+
+/** Tree outline: click to select, indent shows nesting. */
+function Navigator({ root, selectedId, onSelect }: {
+  root: MelNode;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  return (
+    <div className="mel-navigator">
+      {(root.elements || []).map((n) => (
+        <NavItem key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={onSelect} />
+      ))}
+      {(root.elements || []).length === 0 && <p className="mel-status">empty page</p>}
+    </div>
+  );
+}
+
+function NavItem({ node, depth, selectedId, onSelect }: {
+  node: MelNode;
+  depth: number;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const label = node.widgetType || node.elType;
+  return (
+    <>
+      <div
+        className={`mel-navitem${node.id === selectedId ? ' mel-active' : ''}`}
+        style={{ paddingLeft: 6 + depth * 14 }}
+        onClick={() => onSelect(node.id)}
+      >
+        {node.elType === 'container' ? '▦' : '▫'} {label}
+      </div>
+      {(node.elements || []).map((c) => (
+        <NavItem key={c.id} node={c} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />
+      ))}
+    </>
   );
 }
 
