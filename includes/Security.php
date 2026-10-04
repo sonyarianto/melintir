@@ -15,6 +15,8 @@ class Security {
 		'heading', 'text', 'image', 'button',
 		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
 		'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products',
+		'product-title', 'product-price', 'product-cart',
+		'product-rating', 'product-image', 'product-excerpt',
 	);
 
 	const MAX_NODES = 1000;
@@ -318,6 +320,18 @@ class Security {
 			$out['showRating']  = ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] );
 			$out['showBadge']   = ! isset( $settings['showBadge'] ) || ! empty( $settings['showBadge'] );
 			$out['showCart']    = ! isset( $settings['showCart'] ) || ! empty( $settings['showCart'] );
+			break;
+		case 'product-title':
+			$tag = isset( $settings['tag'] ) ? strtolower( (string) $settings['tag'] ) : 'h1';
+			$out['tag'] = in_array( $tag, array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'p' ), true ) ? $tag : 'h1';
+			break;
+		case 'product-image':
+			$out['showThumbs'] = ! isset( $settings['showThumbs'] ) || ! empty( $settings['showThumbs'] );
+			break;
+		case 'product-price':
+		case 'product-cart':
+		case 'product-rating':
+		case 'product-excerpt':
 			break;
 			case 'accordion':
 				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();

@@ -62,6 +62,12 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
     );
     case 'nav': return wrap(<NavPreview settings={s} />);
     case 'products': return wrap(<ProductsPreview settings={s} />);
+    case 'product-title': return wrap(<div className="mel-ptitle">[Product title]</div>);
+    case 'product-price': return wrap(<div className="mel-price">$0.00</div>);
+    case 'product-cart': return wrap(<span className="mel-addcart">Add to cart</span>);
+    case 'product-rating': return wrap(<div className="mel-stars">★★★★★</div>);
+    case 'product-image': return wrap(<div className="mel-pimg">🛍 product image</div>);
+    case 'product-excerpt': return wrap(<div className="mel-pexcerpt">Short description shows on the product page.</div>);
     default: return wrap(<div>?</div>);
   }
 }

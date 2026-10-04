@@ -10,11 +10,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * `melintir_template` posts hold a Melintir doc (`_melintir_data`, same
  * shape as pages) plus location meta:
- *   _melintir_location: header | footer | popup
+ *   _melintir_location: header | footer | popup | single_product | product_archive
  *   _melintir_rule:     entire_site | front_page | blog_home |
- *                       singular_page | singular_post | archive
+ *                       singular_page | singular_post | singular_product |
+ *                       archive | product_archive
  *   (per-ID / taxonomy values come in slice 3; rules are ordered by
  *   specificity, first match wins)
+ * Product locations (Woo lite slice 2, needs WooCommerce): an assigned
+ * single_product template replaces the single-product page via
+ * template_include; product_archive replaces shop/category/tag pages.
+ * Inside single-product templates, the product-* widgets render the
+ * current product (title, price, cart, rating, image, excerpt).
  *
  * Frontend replacement (Theme::register()):
  *   - Block themes: `render_block` swaps core/template-part header/footer.
@@ -39,6 +45,7 @@ class Theme {
 		add_filter( 'render_block', array( __CLASS__, 'swap_template_part' ), 10, 2 );
 		add_filter( 'theme_page_templates', array( __CLASS__, 'canvas_template' ) );
 		add_filter( 'template_include', array( __CLASS__, 'load_canvas' ) );
+		add_filter( 'template_include', array( __CLASS__, 'load_product_template' ), 20 );
 		add_action( 'wp_footer', array( __CLASS__, 'inject_popup' ) );
 		add_shortcode( 'melintir_header', array( __CLASS__, 'shortcode_header' ) );
 		add_shortcode( 'melintir_footer', array( __CLASS__, 'shortcode_footer' ) );
@@ -119,7 +126,7 @@ class Theme {
 		$loc = get_post_meta( $post->ID, self::LOC_META, true );
 		echo '<p><label>' . esc_html__( 'Displays as:', 'melintir' ) . '<br />';
 		echo '<select name="melintir_location">';
-		foreach ( array( '' => __( '— Select —', 'melintir' ), 'header' => __( 'Site Header', 'melintir' ), 'footer' => __( 'Site Footer', 'melintir' ), 'popup' => __( 'Popup', 'melintir' ) ) as $v => $label ) {
+		foreach ( array( '' => __( '— Select —', 'melintir' ), 'header' => __( 'Site Header', 'melintir' ), 'footer' => __( 'Site Footer', 'melintir' ), 'popup' => __( 'Popup', 'melintir' ), 'single_product' => __( 'Single Product', 'melintir' ), 'product_archive' => __( 'Product Archive', 'melintir' ) ) as $v => $label ) {
 			echo '<option value="' . esc_attr( $v ) . '"' . selected( $loc, $v, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></label></p>';
@@ -165,7 +172,7 @@ class Theme {
 			return;
 		}
 		$loc = isset( $_POST['melintir_location'] ) ? sanitize_key( $_POST['melintir_location'] ) : ''; // phpcs:ignore
-		if ( 'header' !== $loc && 'footer' !== $loc && 'popup' !== $loc ) {
+		if ( ! in_array( $loc, array( 'header', 'footer', 'popup', 'single_product', 'product_archive' ), true ) ) {
 			$loc = '';
 		}
 		update_post_meta( $post_id, self::LOC_META, $loc );
@@ -197,12 +204,14 @@ class Theme {
 	 */
 	public static function rules() {
 		return array(
-			'front_page'    => __( 'Front Page', 'melintir' ),
-			'blog_home'     => __( 'Blog Home', 'melintir' ),
-			'singular_page' => __( 'All Pages', 'melintir' ),
-			'singular_post' => __( 'All Posts', 'melintir' ),
-			'archive'       => __( 'All Archives', 'melintir' ),
-			'entire_site'   => __( 'Entire Site', 'melintir' ),
+			'front_page'      => __( 'Front Page', 'melintir' ),
+			'blog_home'       => __( 'Blog Home', 'melintir' ),
+			'singular_page'   => __( 'All Pages', 'melintir' ),
+			'singular_post'   => __( 'All Posts', 'melintir' ),
+			'singular_product' => __( 'All Products', 'melintir' ),
+			'archive'         => __( 'All Archives', 'melintir' ),
+			'product_archive' => __( 'Product Archives', 'melintir' ),
+			'entire_site'     => __( 'Entire Site', 'melintir' ),
 		);
 	}
 
@@ -216,8 +225,12 @@ class Theme {
 				return function_exists( 'is_page' ) && is_page();
 			case 'singular_post':
 				return function_exists( 'is_single' ) && is_single();
+			case 'singular_product':
+				return function_exists( 'is_product' ) && is_product();
 			case 'archive':
 				return function_exists( 'is_archive' ) && is_archive();
+			case 'product_archive':
+				return ( function_exists( 'is_shop' ) && is_shop() ) || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() );
 			case 'entire_site':
 				return true;
 			default:
@@ -319,6 +332,32 @@ class Theme {
 			}
 		}
 		return $template;
+	}
+
+	/**
+	 * Product template takeover (Woo lite slice 2). When a single_product /
+	 * product_archive template is assigned for the current context, render
+	 * that template's doc in a bare canvas instead of the theme/Woo layout.
+	 * No assignment (or no WooCommerce) = theme/Woo renders untouched.
+	 *
+	 * @param string $template
+	 * @return string
+	 */
+	public static function load_product_template( $template ) {
+		if ( is_admin() ) {
+			return $template;
+		}
+		$tid = 0;
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			$tid = self::assigned( 'single_product' );
+		} elseif ( ( function_exists( 'is_shop' ) && is_shop() ) || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) ) {
+			$tid = self::assigned( 'product_archive' );
+		}
+		if ( ! $tid ) {
+			return $template;
+		}
+		$GLOBALS['melintir_doc_id'] = $tid;
+		return MELINTIR_PATH . 'templates/doc-canvas.php';
 	}
 
 	/**

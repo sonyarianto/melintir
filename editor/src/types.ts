@@ -2,7 +2,8 @@ export type ElType = 'container' | 'widget';
 export type WidgetType =
   | 'heading' | 'text' | 'image' | 'button'
   | 'video' | 'divider' | 'spacer' | 'icon-box' | 'tabs' | 'form' | 'loop'
-  | 'accordion' | 'gallery' | 'counter' | 'testimonial' | 'nav' | 'products';
+  | 'accordion' | 'gallery' | 'counter' | 'testimonial' | 'nav' | 'products'
+  | 'product-title' | 'product-price' | 'product-cart' | 'product-rating' | 'product-image' | 'product-excerpt';
 
 export interface MelNode {
   id: string;

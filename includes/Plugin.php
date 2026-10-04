@@ -196,6 +196,18 @@ class Plugin {
 		}
 		$id  = get_the_ID();
 		$css = $id ? get_post_meta( $id, MELINTIR_META_CSS, true ) : '';
+		// Template takeover pages (doc-canvas) render another post's doc,
+		// so they need that template's CSS, not the queried post's.
+		if ( ( function_exists( 'is_product' ) && is_product() ) || ( function_exists( 'is_shop' ) && ( is_shop() || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) ) ) ) {
+			$loc = ( function_exists( 'is_product' ) && is_product() ) ? 'single_product' : 'product_archive';
+			$tid = Theme::assigned( $loc );
+			if ( $tid ) {
+				$tcss = get_post_meta( $tid, MELINTIR_META_CSS, true );
+				if ( is_string( $tcss ) && '' !== $tcss ) {
+					$css = ( is_string( $css ) ? $css : '' ) . "\n" . $tcss;
+				}
+			}
+		}
 		if ( is_string( $css ) && '' !== $css ) {
 			wp_register_style( 'melintir-front', false, array(), MELINTIR_VERSION );
 			wp_enqueue_style( 'melintir-front' );

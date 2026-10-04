@@ -73,6 +73,12 @@ function defaults(type: WidgetType): Partial<MelNode> {
       settings: { count: 8, columns: 4, order: 'DESC', orderBy: 'date', category: 0, showImage: true, showTitle: true, showPrice: true, showRating: true, showBadge: true, showCart: true },
       style: {},
     };
+    case 'product-title': return { settings: { tag: 'h1' }, style: {} };
+    case 'product-image': return { settings: { showThumbs: true }, style: {} };
+    case 'product-price':
+    case 'product-cart':
+    case 'product-rating':
+    case 'product-excerpt': return { settings: {}, style: {} };
   }
 }
 

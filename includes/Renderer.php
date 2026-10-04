@@ -169,6 +169,18 @@ class Renderer {
 			return self::render_loop( $cls, $sett );
 		case 'products':
 			return self::render_products( $cls, $sett );
+		case 'product-title':
+			return self::render_product_title( $cls, $sett );
+		case 'product-price':
+			return self::render_product_price( $cls );
+		case 'product-cart':
+			return self::render_product_cart( $cls );
+		case 'product-rating':
+			return self::render_product_rating( $cls );
+		case 'product-image':
+			return self::render_product_image( $cls, $sett );
+		case 'product-excerpt':
+			return self::render_product_excerpt( $cls );
 			case 'accordion':
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
@@ -298,6 +310,7 @@ class Renderer {
 		$css .= ".mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n";
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
 		$css .= ".mel-badge{display:inline-block;background:#dc2626;color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin:8px 12px 0}.mel-price{font-size:16px;font-weight:700;margin:4px 12px}.mel-price del{color:#94a3b8;font-weight:400;margin-right:6px}.mel-price ins{text-decoration:none;background:none}.mel-stars{margin:0 12px;font-size:14px;color:#f59e0b;letter-spacing:2px}.mel-addcart{display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;text-decoration:none;margin:8px 12px 12px}\n";
+		$css .= ".mel-ptitle{font-size:32px;margin:0 0 8px}.mel-pexcerpt{color:#475569;margin:8px 0}.mel-pimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-pthumbs{display:flex;gap:8px;margin-top:8px}.mel-pthumbs img{width:72px;height:auto;border-radius:6px}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
 		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
 		$css .= ".mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-list a{text-decoration:none;color:inherit}.mel-nav-sub{list-style:none;margin:4px 0 0 12px;padding:0}.mel-nav-check{display:none}.mel-nav-burger{display:none;cursor:pointer;font-size:24px}@media(max-width:767px){.mel-has-toggle .mel-nav-burger{display:block}.mel-has-toggle .mel-nav-list{display:none;flex-direction:column}.mel-has-toggle .mel-nav-check:checked+.mel-nav-burger+.mel-nav-list{display:flex}}\n";
@@ -577,6 +590,102 @@ class Renderer {
 		}
 		wp_reset_postdata();
 		return $out . '</div>';
+	}
+
+	/**
+	 * The product the product-* widgets describe: single-product pages with
+	 * WooCommerce active only. Anywhere else they render nothing (the editor
+	 * shows its own placeholders), so templates can never leak wrong data.
+	 *
+	 * @return \WC_Product|null
+	 */
+	private static function current_product() {
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return null;
+		}
+		if ( ! ( function_exists( 'is_product' ) && is_product() ) ) {
+			return null;
+		}
+		$product = wc_get_product( get_the_ID() );
+		return $product ? $product : null;
+	}
+
+	private static function render_product_title( $cls, $sett ) {
+		$product = self::current_product();
+		if ( ! $product ) {
+			return '';
+		}
+		$tag = isset( $sett['tag'] ) ? (string) $sett['tag'] : 'h1';
+		if ( ! in_array( $tag, array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'p' ), true ) ) {
+			$tag = 'h1';
+		}
+		return '<' . $tag . ' class="mel-ptitle ' . esc_attr( $cls ) . '">' . esc_html( $product->get_name() ) . '</' . $tag . '>';
+	}
+
+	private static function render_product_price( $cls ) {
+		$product = self::current_product();
+		if ( ! $product ) {
+			return '';
+		}
+		return '<div class="mel-price ' . esc_attr( $cls ) . '">' . wp_kses_post( $product->get_price_html() ) . '</div>';
+	}
+
+	private static function render_product_rating( $cls ) {
+		$product = self::current_product();
+		if ( ! $product || ! function_exists( 'wc_get_rating_html' ) ) {
+			return '';
+		}
+		$stars = wc_get_rating_html( $product->get_average_rating(), $product->get_rating_count() );
+		if ( '' === $stars ) {
+			return '';
+		}
+		return '<div class="mel-stars ' . esc_attr( $cls ) . '">' . $stars . '</div>';
+	}
+
+	private static function render_product_cart( $cls ) {
+		$product = self::current_product();
+		if ( ! $product || ! $product->is_purchasable() || ! $product->is_in_stock() ) {
+			return '';
+		}
+		if ( 'simple' === $product->get_type() && $product->supports( 'ajax_add_to_cart' ) ) {
+			return '<a href="' . esc_url( $product->add_to_cart_url() ) . '" data-quantity="1" class="mel-addcart add_to_cart_button ajax_add_to_cart ' . esc_attr( $cls ) . '" data-product_id="' . esc_attr( (string) $product->get_id() ) . '" data-product_sku="' . esc_attr( $product->get_sku() ) . '">' . esc_html( $product->add_to_cart_text() ) . '</a>';
+		}
+		return '<a href="' . esc_url( $product->add_to_cart_url() ) . '" class="mel-addcart ' . esc_attr( $cls ) . '">' . esc_html( $product->add_to_cart_text() ) . '</a>';
+	}
+
+	private static function render_product_image( $cls, $sett ) {
+		$product = self::current_product();
+		if ( ! $product ) {
+			return '';
+		}
+		$pid = $product->get_id();
+		$main = get_the_post_thumbnail( $pid, 'woocommerce_single' );
+		if ( '' === $main && function_exists( 'wc_placeholder_img' ) ) {
+			$main = wc_placeholder_img( 'woocommerce_single' );
+		}
+		$out = '<div class="mel-pimg ' . esc_attr( $cls ) . '">' . $main;
+		if ( ! empty( $sett['showThumbs'] ) ) {
+			$thumbs = '';
+			foreach ( $product->get_gallery_image_ids() as $att_id ) {
+				$thumbs .= wp_get_attachment_image( $att_id, 'woocommerce_gallery_thumbnail' );
+			}
+			if ( '' !== $thumbs ) {
+				$out .= '<div class="mel-pthumbs">' . $thumbs . '</div>';
+			}
+		}
+		return $out . '</div>';
+	}
+
+	private static function render_product_excerpt( $cls ) {
+		$product = self::current_product();
+		if ( ! $product ) {
+			return '';
+		}
+		$excerpt = $product->get_short_description();
+		if ( '' === trim( (string) $excerpt ) ) {
+			return '';
+		}
+		return '<div class="mel-pexcerpt ' . esc_attr( $cls ) . '">' . wp_kses_post( $excerpt ) . '</div>';
 	}
 
 	/**

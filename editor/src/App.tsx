@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt'];
 
 declare global {
   interface Window {
@@ -643,6 +643,24 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
           </div>
           <p className="mel-status">needs WooCommerce active on this site.</p>
         </>
+      )}
+
+      {node.widgetType === 'product-title' && (
+        <Field label="Tag">
+          <select value={s.tag || 'h1'} onChange={(e) => onSetting({ tag: e.target.value })}>
+            {['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div'].map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </Field>
+      )}
+
+      {node.widgetType === 'product-image' && (
+        <div className="mel-row">
+          <label><input type="checkbox" checked={s.showThumbs !== false} onChange={(e) => onSetting({ showThumbs: e.target.checked })} /> thumbnails</label>
+        </div>
+      )}
+
+      {(node.widgetType === 'product-title' || node.widgetType === 'product-price' || node.widgetType === 'product-cart' || node.widgetType === 'product-rating' || node.widgetType === 'product-image' || node.widgetType === 'product-excerpt') && (
+        <p className="mel-status">shows the current product — use inside a Single Product template.</p>
       )}
 
       {node.widgetType === 'accordion' && (
