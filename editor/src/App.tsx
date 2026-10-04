@@ -47,6 +47,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [bp, setBp] = useState<BP>('desktop');
   const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
+  const [history, setHistory] = useState<{ autosave: { ts: number } | null; revisions: { ts: number }[] }>({ autosave: null, revisions: [] });
 
   useEffect(() => {
     initWasm().then(setWasmOk);
@@ -56,7 +57,11 @@ export default function App() {
         .then((r) => r.json())
         .then((j) => {
           if (j?.doc?.root) {
-            load(typeof j.doc === 'string' ? JSON.parse(j.doc) : j.doc);
+            // Silent initial load: no undo checkpoint, stays clean.
+            useEditor.setState({
+              doc: typeof j.doc === 'string' ? JSON.parse(j.doc) : j.doc,
+              past: [], future: [], dirty: false, selectedId: null,
+            });
             setStatus('loaded');
           } else setStatus('new document');
         })
@@ -68,6 +73,7 @@ export default function App() {
         .then((j) => Array.isArray(j) && setTemplates(j))
         .catch(() => {});
     }
+    refreshHistory();
   }, []);
 
   const { css, ms } = useMemo(() => generateCss(doc), [doc, wasmOk]);
@@ -94,6 +100,55 @@ export default function App() {
       setSaving(false);
     }
   };
+
+  const refreshHistory = async () => {
+    const d: any = (window as any).MelintirData;
+    if (!d?.restUrl) return;
+    try {
+      const r = await fetch(d.restUrl + '/history', { headers: { 'X-WP-Nonce': d.nonce } });
+      const j = await r.json();
+      if (j && !j.code) setHistory({ autosave: j.autosave || null, revisions: j.revisions || [] });
+    } catch { /* offline */ }
+  };
+
+  const restoreRev = async (ts: number) => {
+    const d: any = (window as any).MelintirData;
+    if (!d?.restUrl) return;
+    // Plain permalinks embed ?rest_route= : append the rev param with &.
+    const sep = String(d.restUrl).includes('?') ? '&' : '?';
+    try {
+      const r = await fetch(d.restUrl + '/history' + sep + 'rev=' + ts, { headers: { 'X-WP-Nonce': d.nonce } });
+      const j = await r.json();
+      if (j?.doc?.root) {
+        load(j.doc); // checkpoint-safe: current canvas stays reachable via undo.
+        setStatus(`restored ${new Date(ts * 1000).toLocaleString()} (undo to go back)`);
+      } else setStatus('restore failed');
+    } catch (e: any) {
+      setStatus('restore failed: ' + e.message);
+    }
+  };
+
+  // Autosave every 45s while dirty. Never touches the published doc.
+  useEffect(() => {
+    const t = setInterval(async () => {
+      const st = useEditor.getState();
+      const d: any = (window as any).MelintirData;
+      if (!st.dirty || !d?.restUrl) return;
+      try {
+        const r = await fetch(d.restUrl + '/autosave', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': d.nonce },
+          body: JSON.stringify({ doc: st.doc }),
+        });
+        const j = await r.json();
+        if (j?.ok) {
+          setStatus(`autosaved ${new Date(j.ts * 1000).toLocaleTimeString()}`);
+          refreshHistory();
+        }
+      } catch { /* offline */ }
+    }, 45000);
+    return () => clearInterval(t);
+  }, []);
 
   const exportJson = () => {
     const d: any = (window as any).MelintirData;
@@ -206,6 +261,25 @@ export default function App() {
               <button key={t.name} title="Replace canvas with this template" onClick={() => { load(t.doc); setStatus(`template: ${t.name}`); }}>
                 {t.name}
               </button>
+            ))}
+          </div>
+        )}
+        <h4>History</h4>
+        {history.autosave ? (
+          <div className="mel-row">
+            <span className="mel-status">autosave {new Date(history.autosave.ts * 1000).toLocaleString()}</span>
+            <button onClick={() => restoreRev(history.autosave!.ts)}>Restore</button>
+          </div>
+        ) : (
+          <p className="mel-status">no autosave yet</p>
+        )}
+        {history.revisions.length > 0 && (
+          <div className="mel-history">
+            {history.revisions.map((r) => (
+              <div key={r.ts} className="mel-row">
+                <span className="mel-status">{new Date(r.ts * 1000).toLocaleString()}</span>
+                <button onClick={() => restoreRev(r.ts)}>Restore</button>
+              </div>
             ))}
           </div>
         )}

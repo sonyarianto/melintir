@@ -51,6 +51,24 @@ class Rest {
 				'permission_callback' => array( __CLASS__, 'can_edit' ),
 			)
 		);
+		register_rest_route(
+			'melintir/v1',
+			'/post/(?P<id>\d+)/autosave',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'autosave' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
+		register_rest_route(
+			'melintir/v1',
+			'/post/(?P<id>\d+)/history',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'history' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
 	}
 
 	public static function can_edit( \WP_REST_Request $req ) {
@@ -129,6 +147,71 @@ class Rest {
 			return $result;
 		}
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Write an autosave snapshot + rotate the revision ring (max 5).
+	 * Never touches the published `_melintir_data`.
+	 */
+	public static function autosave( \WP_REST_Request $req ) {
+		$id  = intval( $req->get_param( 'id' ) );
+		$doc = $req->get_json_params();
+		if ( isset( $doc['doc'] ) && is_array( $doc['doc'] ) ) {
+			$doc = $doc['doc'];
+		}
+		if ( strlen( wp_json_encode( $doc ) ) > Security::MAX_JSON_BYTES ) {
+			return new \WP_Error( 'too_large', 'Document too large', array( 'status' => 413 ) );
+		}
+		list( $clean, $errors ) = Security::sanitize_document( $doc );
+		if ( null === $clean ) {
+			return new \WP_Error( 'invalid', implode( '; ', $errors ), array( 'status' => 400 ) );
+		}
+		$ts = time();
+		update_post_meta( $id, '_melintir_autosave', wp_json_encode( array( 'ts' => $ts, 'doc' => $clean ) ) );
+
+		$revs = get_post_meta( $id, '_melintir_revisions', true );
+		$revs = is_array( $revs ) ? $revs : array();
+		array_unshift( $revs, array( 'ts' => $ts, 'doc' => $clean ) );
+		update_post_meta( $id, '_melintir_revisions', array_slice( $revs, 0, 5 ) );
+
+		return rest_ensure_response( array( 'ok' => true, 'ts' => $ts, 'warnings' => $errors ) );
+	}
+
+	/**
+	 * Read autosave + revision timestamps. ?rev=<ts> returns that full doc.
+	 */
+	public static function history( \WP_REST_Request $req ) {
+		$id  = intval( $req->get_param( 'id' ) );
+		$rev = $req->get_param( 'rev' );
+		$revs = get_post_meta( $id, '_melintir_revisions', true );
+		$revs = is_array( $revs ) ? $revs : array();
+		if ( null !== $rev ) {
+			foreach ( $revs as $r ) {
+				if ( isset( $r['ts'] ) && (string) $r['ts'] === (string) $rev ) {
+					return rest_ensure_response( array( 'doc' => $r['doc'], 'ts' => $r['ts'] ) );
+				}
+			}
+			$auto = get_post_meta( $id, '_melintir_autosave', true );
+			$auto = is_array( $auto ) ? $auto : ( is_string( $auto ) ? json_decode( $auto, true ) : null );
+			if ( is_array( $auto ) && isset( $auto['ts'] ) && (string) $auto['ts'] === (string) $rev && isset( $auto['doc'] ) ) {
+				return rest_ensure_response( array( 'doc' => $auto['doc'], 'ts' => $auto['ts'] ) );
+			}
+			return new \WP_Error( 'not_found', 'Revision not found', array( 'status' => 404 ) );
+		}
+		$auto = get_post_meta( $id, '_melintir_autosave', true );
+		$auto = is_array( $auto ) ? $auto : ( is_string( $auto ) ? json_decode( $auto, true ) : null );
+		$list = array();
+		foreach ( $revs as $r ) {
+			if ( isset( $r['ts'] ) ) {
+				$list[] = array( 'ts' => $r['ts'] );
+			}
+		}
+		return rest_ensure_response(
+			array(
+				'autosave'  => ( is_array( $auto ) && isset( $auto['ts'] ) ) ? array( 'ts' => $auto['ts'] ) : null,
+				'revisions' => $list,
+			)
+		);
 	}
 
 	private static function write_css_file( $post_id, $css ) {

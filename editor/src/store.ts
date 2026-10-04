@@ -13,7 +13,7 @@ interface EditorState {
   removeNode: (id: string) => void;
   undo: () => void;
   redo: () => void;
-  load: (doc: MelDoc) => void;
+  load: (doc: MelDoc, markDirty?: boolean) => void;
 }
 
 const snap = (doc: MelDoc) => JSON.stringify(doc);
@@ -100,5 +100,11 @@ export const useEditor = create<EditorState>((set, get) => ({
     const [next, ...rest] = s.future;
     return { doc: JSON.parse(next), past: [...s.past, snap(s.doc)], future: rest, dirty: true };
   }),
-  load: (doc) => set({ doc, past: [], future: [], dirty: false, selectedId: null }),
+  load: (doc, markDirty = true) => set((s) => {
+    // Preserve undo across loads so restoring a revision/autosave/template
+    // never destroys the pre-restore state (undo returns to it).
+    const prev = snap(s.doc);
+    const past = JSON.stringify(doc) === prev ? s.past : [...s.past.slice(-49), prev];
+    return { doc, past, future: [], dirty: markDirty, selectedId: null };
+  }),
 }));
