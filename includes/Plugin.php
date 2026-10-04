@@ -31,6 +31,7 @@ class Plugin {
 		add_filter( 'the_content', array( $this, 'the_content' ), 9 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
+		add_filter( 'page_row_actions', array( $this, 'row_action' ), 10, 2 );
 	}
 
 	public function menu() {
