@@ -1,0 +1,44 @@
+{
+  "version": "0.1.0",
+  "root": {
+    "id": "root",
+    "elType": "container",
+    "settings": {},
+    "style": { "layout": { "direction": "column", "gap": 24 } },
+    "elements": [
+      {
+        "id": "head",
+        "elType": "container",
+        "settings": { "animation": "fade-in" },
+        "style": { "layout": { "direction": "column", "gap": 8 } },
+        "elements": [
+          { "id": "title", "elType": "widget", "widgetType": "heading", "settings": { "text": "Talk to us", "tag": "h1" }, "style": { "typo": { "size": 44, "weight": 800 } }, "elements": [] },
+          { "id": "sub", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Replies within one business day.</p>" }, "style": { "typo": { "color": "#475569" } }, "elements": [] }
+        ]
+      },
+      {
+        "id": "cols",
+        "elType": "container",
+        "settings": { "animation": "fade-up" },
+        "style": { "layout": { "direction": "row", "gap": 16 } },
+        "elements": [
+          { "id": "form", "elType": "widget", "widgetType": "form", "settings": { "fields": [{ "label": "Name", "name": "name", "type": "text", "required": true }, { "label": "Email", "name": "email", "type": "email", "required": true }, { "label": "Message", "name": "message", "type": "textarea", "required": true }], "buttonText": "Send message", "successMsg": "Thanks! We will reply soon." }, "style": {}, "elements": [] },
+          {
+            "id": "info",
+            "elType": "container",
+            "settings": {},
+            "style": { "layout": { "direction": "column", "gap": 12 } },
+            "elements": [
+              { "id": "i1", "elType": "widget", "widgetType": "icon-box", "settings": { "title": "Email", "desc": "hello@example.com", "icon": "mail" }, "style": {}, "elements": [] },
+              { "id": "i2", "elType": "widget", "widgetType": "icon-box", "settings": { "title": "Office", "desc": "Denpasar, Bali", "icon": "pin" }, "style": {}, "elements": [] }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "globals": {
+    "colors": { "primary": "#2563eb", "text": "#0f172a" },
+    "breakpoints": { "tablet": 1024, "mobile": 767 }
+  }
+}

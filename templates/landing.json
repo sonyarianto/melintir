@@ -1,0 +1,48 @@
+{
+  "version": "0.1.0",
+  "root": {
+    "id": "root",
+    "elType": "container",
+    "settings": {},
+    "style": { "layout": { "direction": "column", "gap": 32 } },
+    "elements": [
+      {
+        "id": "hero",
+        "elType": "container",
+        "settings": { "animation": "fade-in" },
+        "style": { "layout": { "direction": "column", "gap": 16, "padding": 56, "radius": 20, "gradient": { "from": "#2563eb", "to": "#7c3aed", "angle": 135 }, "shadow": "lg" } },
+        "elements": [
+          { "id": "hero-kicker", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>✨ New: faster than ever</p>" }, "style": { "typo": { "size": 16, "color": "#ffffff" } }, "elements": [] },
+          { "id": "hero-title", "elType": "widget", "widgetType": "heading", "settings": { "text": "Ship your landing page today", "tag": "h1" }, "style": { "typo": { "size": 56, "weight": 800, "color": "#ffffff" } }, "elements": [] },
+          { "id": "hero-sub", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Container-only builder. No bloat, no jQuery, just speed.</p>" }, "style": { "typo": { "size": 20, "color": "#e0e7ff" } }, "elements": [] },
+          { "id": "hero-cta", "elType": "widget", "widgetType": "button", "settings": { "text": "Get started free", "url": "#" }, "style": { "layout": { "bg": "#ffffff", "radius": 10 }, "typo": { "color": "#1d4ed8", "weight": 700 }, "hover": { "layout": { "bg": "#e0e7ff", "shadow": "md" } } }, "elements": [] }
+        ]
+      },
+      {
+        "id": "features",
+        "elType": "container",
+        "settings": { "animation": "fade-up" },
+        "style": { "layout": { "direction": "row", "gap": 16 } },
+        "elements": [
+          { "id": "f1", "elType": "widget", "widgetType": "icon-box", "settings": { "title": "Fast", "desc": "Single CSS file per page, cached and tiny.", "icon": "bolt" }, "style": { "layout": { "bg": "#f8fafc", "padding": 24, "radius": 12 } }, "elements": [] },
+          { "id": "f2", "elType": "widget", "widgetType": "icon-box", "settings": { "title": "Visual", "desc": "Drag, drop, and see every change instantly.", "icon": "eye" }, "style": { "layout": { "bg": "#f8fafc", "padding": 24, "radius": 12 } }, "elements": [] },
+          { "id": "f3", "elType": "widget", "widgetType": "icon-box", "settings": { "title": "Open", "desc": "GPLv2+, JSON everywhere, migrate anytime.", "icon": "lock-open" }, "style": { "layout": { "bg": "#f8fafc", "padding": 24, "radius": 12 } }, "elements": [] }
+        ]
+      },
+      {
+        "id": "proof",
+        "elType": "container",
+        "settings": {},
+        "style": { "layout": { "direction": "column", "gap": 16 } },
+        "elements": [
+          { "id": "t1", "elType": "widget", "widgetType": "testimonial", "settings": { "quote": "We replaced a 400KB builder with this and our scores went green overnight.", "name": "Nadia", "role": "Founder" }, "style": {}, "elements": [] },
+          { "id": "stars", "elType": "widget", "widgetType": "star-rating", "settings": { "rating": 5 }, "style": {}, "elements": [] }
+        ]
+      }
+    ]
+  },
+  "globals": {
+    "colors": { "primary": "#2563eb", "text": "#0f172a" },
+    "breakpoints": { "tablet": 1024, "mobile": 767 }
+  }
+}

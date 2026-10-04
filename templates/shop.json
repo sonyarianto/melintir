@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "root": {
+    "id": "root",
+    "elType": "container",
+    "settings": {},
+    "style": { "layout": { "direction": "column", "gap": 24 } },
+    "elements": [
+      {
+        "id": "hero",
+        "elType": "container",
+        "settings": { "animation": "fade-in" },
+        "style": { "layout": { "direction": "column", "gap": 8, "padding": 40, "radius": 16, "bg": "#0f172a" } },
+        "elements": [
+          { "id": "title", "elType": "widget", "widgetType": "heading", "settings": { "text": "The shop", "tag": "h1" }, "style": { "typo": { "size": 44, "weight": 800, "color": "#ffffff" } }, "elements": [] },
+          { "id": "sub", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Real products, real prices, straight from WooCommerce.</p>" }, "style": { "typo": { "color": "#cbd5e1" } }, "elements": [] }
+        ]
+      },
+      { "id": "grid", "elType": "widget", "widgetType": "products", "settings": { "count": 8, "columns": 4, "order": "DESC", "orderBy": "date", "category": 0, "showImage": true, "showTitle": true, "showPrice": true, "showRating": true, "showBadge": true, "showCart": true }, "style": {}, "elements": [] },
+      { "id": "t1", "elType": "widget", "widgetType": "testimonial", "settings": { "quote": "Ordered Tuesday, arrived Friday. Flawless.", "name": "Dimas", "role": "Customer" }, "style": {}, "elements": [] }
+    ]
+  },
+  "globals": {
+    "colors": { "primary": "#2563eb", "text": "#0f172a" },
+    "breakpoints": { "tablet": 1024, "mobile": 767 }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "version": "0.1.0",
+  "root": {
+    "id": "root",
+    "elType": "container",
+    "settings": {},
+    "style": { "layout": { "direction": "column", "gap": 24 } },
+    "elements": [
+      {
+        "id": "head",
+        "elType": "container",
+        "settings": { "animation": "fade-in" },
+        "style": { "layout": { "direction": "column", "gap": 8 } },
+        "elements": [
+          { "id": "title", "elType": "widget", "widgetType": "heading", "settings": { "text": "Simple pricing", "tag": "h1" }, "style": { "typo": { "size": 48, "weight": 800 } }, "elements": [] },
+          { "id": "sub", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Start free. Upgrade when it pays for itself.</p>" }, "style": { "typo": { "size": 18, "color": "#475569" } }, "elements": [] }
+        ]
+      },
+      {
+        "id": "plans",
+        "elType": "container",
+        "settings": { "animation": "fade-up" },
+        "style": { "layout": { "direction": "row", "gap": 16 } },
+        "elements": [
+          { "id": "p-starter", "elType": "widget", "widgetType": "price-table", "settings": { "title": "Starter", "price": "0", "currency": "$", "period": "/mo", "features": ["3 pages", "Core widgets", "Community support"], "buttonText": "Start free", "buttonUrl": "#", "highlight": false }, "style": {}, "elements": [] },
+          { "id": "p-pro", "elType": "widget", "widgetType": "price-table", "settings": { "title": "Pro", "price": "29", "currency": "$", "period": "/mo", "features": ["Unlimited pages", "All 31 widgets", "Theme builder", "Priority support"], "buttonText": "Go Pro", "buttonUrl": "#", "highlight": true }, "style": {}, "elements": [] },
+          { "id": "p-agency", "elType": "widget", "widgetType": "price-table", "settings": { "title": "Agency", "price": "99", "currency": "$", "period": "/mo", "features": ["Everything in Pro", "Role manager", "White label"], "buttonText": "Talk to us", "buttonUrl": "#", "highlight": false }, "style": {}, "elements": [] }
+        ]
+      },
+      { "id": "note", "elType": "widget", "widgetType": "text", "settings": { "html": "<p>Prices in USD. Cancel anytime.</p>" }, "style": { "typo": { "size": 14, "color": "#64748b" } }, "elements": [] }
+    ]
+  },
+  "globals": {
+    "colors": { "primary": "#2563eb", "text": "#0f172a" },
+    "breakpoints": { "tablet": 1024, "mobile": 767 }
+  }
+}
