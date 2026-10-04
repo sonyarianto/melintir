@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.13.0
+Stable tag: 0.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.13.0:
+What you get in 0.14.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -36,7 +36,8 @@ What you get in 0.13.0:
 * Block copy-paste across pages (OS clipboard, Ctrl+C / Ctrl+V).
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
 * Undo/redo, autosave with 5-revision history and undo-safe restore.
-* Starter templates, JSON import/export, Elementor migrator (WP-CLI + REST).
+* Starter templates (landing, pricing, shop, contact + hello), JSON
+  import/export, Elementor migrator (WP-CLI + REST).
 * Theme Builder slices 1–2: Canvas template, block-theme header/footer
   swap, display conditions, shortcodes, popup builder (lite).
 * Form upgrades: per-form recipients, Turnstile, spam-check filter,
@@ -95,6 +96,11 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.14.0 =
+* Template library grows 1 → 5: landing (gradient hero, animations,
+  hover CTA), pricing (3 tiers), shop (live product grid), contact
+  (form + info columns). All machine-validated through the sanitizer.
 
 = 0.13.0 =
 * Custom-field dynamic tags: {{meta:key}} resolves public post meta
