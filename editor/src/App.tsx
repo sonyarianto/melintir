@@ -226,11 +226,74 @@ export default function App() {
     });
   };
 
+  const isMelNode = (v: any) =>
+    v && typeof v === 'object' && typeof v.id === 'string' &&
+    (v.elType === 'container' || v.elType === 'widget');
+
+  /** Copy the selected block as JSON text. OS clipboard => works cross-page. */
+  const copySelected = async (node: MelNode | null) => {
+    if (!node) {
+      setStatus('select a block to copy');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(node));
+      setStatus(`copied ${node.widgetType || node.elType} (paste anywhere)`);
+    } catch {
+      setStatus('copy failed: clipboard unavailable (HTTPS or localhost required)');
+    }
+  };
+
+  /** Paste a block (or full doc's top-level blocks) from clipboard as fresh copies. */
+  const pasteClipboard = async () => {
+    let text = '';
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      setStatus('paste failed: clipboard unavailable (HTTPS or localhost required)');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(text);
+      if (isMelNode(parsed)) {
+        insertNode(parsed as MelNode);
+        setStatus(`pasted ${parsed.widgetType || parsed.elType}`);
+      } else if (Array.isArray(parsed?.root?.elements)) {
+        parsed.root.elements.filter(isMelNode).forEach((n: MelNode) => insertNode(n));
+        setStatus(`pasted ${parsed.root.elements.length} block(s)`);
+      } else {
+        throw new Error('bad shape');
+      }
+    } catch {
+      setStatus('paste failed: clipboard has no Melintir block');
+    }
+  };
+
+  // Ctrl/Cmd+C/V for blocks. Skipped while typing in a field.
+  // Re-subscribed when selection changes so the handler never goes stale.
   const sel: MelNode | null = useMemo(() => {
     const find = (n: MelNode): MelNode | null =>
       n.id === selectedId ? n : (n.elements || []).map(find).find(Boolean) || null;
     return selectedId ? find(doc.root) : null;
   }, [doc, selectedId]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        copySelected(sel);
+      } else if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        pasteClipboard();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel]);
 
   /** Merge a style patch into the active breakpoint scope. */
   const patchStyle = (node: MelNode, patch: Record<string, any>) => {
@@ -325,6 +388,12 @@ export default function App() {
             Save selected
           </button>
         </div>
+        <h4>Clipboard</h4>
+        <p className="mel-status">copy a block, paste it here or on another page (Ctrl+C / Ctrl+V).</p>
+        <div className="mel-row">
+          <button disabled={!sel} onClick={() => copySelected(sel)}>⧉ Copy selected</button>
+          <button onClick={pasteClipboard}>📋 Paste</button>
+        </div>
         {patterns.length > 0 && (
           <div className="mel-history">
             {patterns.map((p) => (
@@ -364,6 +433,7 @@ export default function App() {
             onStyle={(p) => patchStyle(sel, p)}
             onSetting={(p) => setSetting(sel, p)}
             onRemove={() => removeNode(sel.id)}
+            onCopy={() => copySelected(sel)}
           />
         )}
       </aside>
@@ -378,7 +448,7 @@ export default function App() {
   );
 }
 
-function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
@@ -386,6 +456,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
   onStyle: (p: Record<string, any>) => void;
   onSetting: (p: Record<string, any>) => void;
   onRemove: () => void;
+  onCopy: () => void;
 }) {
   const s = node.settings || {};
   const L = scope.layout;
@@ -395,6 +466,7 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
       <h4>
         {node.widgetType || node.elType}
         {bp !== 'desktop' && <span className="mel-bpbadge">· {bp}</span>}
+        <button title="Copy block (Ctrl+C)" onClick={onCopy}>⧉</button>
         <button onClick={onRemove}>✕</button>
       </h4>
 
