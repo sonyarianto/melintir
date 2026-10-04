@@ -1,0 +1,8 @@
+wordpress.org deploy mapping (SVN https://plugins.svn.wordpress.org/melintir):
+  trunk/          <- repo root EXCEPT .wordpress-org/ (never ships in the plugin zip)
+  assets/         <- this directory's *.png, renamed as-is:
+                     banner-1544x500.png, icon-256x256.png, screenshot-1..4.png
+  tags/x.y.z/     <- trunk snapshot per release (Stable tag in readme.txt)
+
+Before submit: replace Contributors in readme.txt with your wordpress.org
+username, and re-capture screenshots if the editor UI visibly changed.
