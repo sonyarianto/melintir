@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products'];
 
 declare global {
   interface Window {
@@ -616,6 +616,35 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
         </>
       )}
 
+      {node.widgetType === 'products' && (
+        <>
+          <ProductCatPicker value={+s.category || 0} onPick={(v) => onSetting({ category: v })} />
+          <Field label="Count (1–20)"><Num value={s.count ?? 8} onChange={(v) => onSetting({ count: Math.max(1, Math.min(20, v || 1)) })} /></Field>
+          <Field label="Columns (1–4)"><Num value={s.columns ?? 4} onChange={(v) => onSetting({ columns: Math.max(1, Math.min(4, v || 1)) })} /></Field>
+          <Field label="Order by">
+            <select value={s.orderBy || 'date'} onChange={(e) => onSetting({ orderBy: e.target.value })}>
+              <option value="date">newest</option>
+              <option value="price">price</option>
+              <option value="rating">rating</option>
+              <option value="popularity">popularity</option>
+              <option value="title">title</option>
+            </select>
+          </Field>
+          <Field label="Order">
+            <select value={s.order || 'DESC'} onChange={(e) => onSetting({ order: e.target.value })}>
+              <option value="DESC">descending</option>
+              <option value="ASC">ascending</option>
+            </select>
+          </Field>
+          <div className="mel-row">
+            {[['showImage', 'image'], ['showTitle', 'title'], ['showPrice', 'price'], ['showRating', 'rating'], ['showBadge', 'badge'], ['showCart', 'cart']].map(([k, label]) => (
+              <label key={k}><input type="checkbox" checked={s[k] !== false} onChange={(e) => onSetting({ [k]: e.target.checked })} /> {label}</label>
+            ))}
+          </div>
+          <p className="mel-status">needs WooCommerce active on this site.</p>
+        </>
+      )}
+
       {node.widgetType === 'accordion' && (
         <>
           {(s.items || []).map((t: any, i: number) => (
@@ -809,6 +838,42 @@ function NavInspector({ node, onSetting }: {
         <label><input type="checkbox" checked={s.showToggle !== false} onChange={(e) => onSetting({ showToggle: e.target.checked })} /> hamburger on mobile</label>
       </div>
     </>
+  );
+}
+
+/** Category dropdown fed by the public Woo Store API; falls back to raw ID input. */
+function ProductCatPicker({ value, onPick }: {
+  value: number;
+  onPick: (v: number) => void;
+}) {
+  const [cats, setCats] = useState<{ id: number; name: string; count: number }[]>([]);
+  useEffect(() => {
+    const base = wpApiBase();
+    if (!base) return;
+    const d: any = (window as any).MelintirData;
+    fetch(wpApiUrl(base, '/wc/store/v1/products/categories') + 'per_page=50', {
+      headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {},
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => Array.isArray(j) && setCats(
+        j.filter((c: any) => c && c.id).map((c: any) => ({ id: +c.id, name: String(c.name), count: +c.count || 0 }))
+      ))
+      .catch(() => {});
+  }, []);
+  if (!cats.length) {
+    return (
+      <Field label="Category ID (0 = all)">
+        <input type="number" value={value} onChange={(e) => onPick(Math.max(0, +e.target.value || 0))} />
+      </Field>
+    );
+  }
+  return (
+    <Field label="Category">
+      <select value={value} onChange={(e) => onPick(+e.target.value)}>
+        <option value={0}>All products</option>
+        {cats.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.count})</option>)}
+      </select>
+    </Field>
   );
 }
 

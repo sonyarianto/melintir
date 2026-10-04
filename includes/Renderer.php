@@ -165,8 +165,10 @@ class Renderer {
 				return $out . '</div></div>';
 			case 'form':
 				return self::render_form( $id, $cls, $sett );
-			case 'loop':
-				return self::render_loop( $cls, $sett );
+		case 'loop':
+			return self::render_loop( $cls, $sett );
+		case 'products':
+			return self::render_products( $cls, $sett );
 			case 'accordion':
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
@@ -295,6 +297,7 @@ class Renderer {
 		$css .= self::globals_css( $doc );
 		$css .= ".mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n";
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
+		$css .= ".mel-badge{display:inline-block;background:#dc2626;color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin:8px 12px 0}.mel-price{font-size:16px;font-weight:700;margin:4px 12px}.mel-price del{color:#94a3b8;font-weight:400;margin-right:6px}.mel-price ins{text-decoration:none;background:none}.mel-stars{margin:0 12px;font-size:14px;color:#f59e0b;letter-spacing:2px}.mel-addcart{display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;text-decoration:none;margin:8px 12px 12px}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
 		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
 		$css .= ".mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-list a{text-decoration:none;color:inherit}.mel-nav-sub{list-style:none;margin:4px 0 0 12px;padding:0}.mel-nav-check{display:none}.mel-nav-burger{display:none;cursor:pointer;font-size:24px}@media(max-width:767px){.mel-has-toggle .mel-nav-burger{display:block}.mel-has-toggle .mel-nav-list{display:none;flex-direction:column}.mel-has-toggle .mel-nav-check:checked+.mel-nav-burger+.mel-nav-list{display:flex}}\n";
@@ -469,6 +472,106 @@ class Renderer {
 			}
 			if ( ! empty( $sett['showExcerpt'] ) ) {
 				$out .= '<div class="mel-card-ex">' . esc_html( wp_trim_words( get_the_excerpt(), 20 ) ) . '</div>';
+			}
+			$out .= '</article>';
+		}
+		wp_reset_postdata();
+		return $out . '</div>';
+	}
+
+	/**
+	 * Product grid (Woo lite). Server-rendered from real store data so the
+	 * visitor gets SEO-friendly HTML with zero extra JS; degrades to a
+	 * notice when WooCommerce is inactive. Variable products get their
+	 * price range + a view-product button automatically.
+	 *
+	 * @param string $cls
+	 * @param array  $sett
+	 * @return string
+	 */
+	private static function render_products( $cls, $sett ) {
+		if ( ! function_exists( 'wc_get_product' ) || ! post_type_exists( 'product' ) ) {
+			return '<p class="mel-loop-empty ' . esc_attr( $cls ) . '">' . esc_html__( 'Install and activate WooCommerce to display products.', 'melintir' ) . '</p>';
+		}
+		$count = isset( $sett['count'] ) ? max( 1, min( 20, intval( $sett['count'] ) ) ) : 8;
+		$cols  = isset( $sett['columns'] ) ? max( 1, min( 4, intval( $sett['columns'] ) ) ) : 4;
+		$order = ( isset( $sett['order'] ) && 'ASC' === strtoupper( (string) $sett['order'] ) ) ? 'ASC' : 'DESC';
+		$args  = array(
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'posts_per_page' => $count,
+			'order'          => $order,
+			'no_found_rows'  => true,
+		);
+		switch ( isset( $sett['orderBy'] ) ? (string) $sett['orderBy'] : 'date' ) {
+			case 'price':
+				$args['orderby']  = 'meta_value_num';
+				$args['meta_key'] = '_price'; // phpcs:ignore
+				break;
+			case 'rating':
+				$args['orderby']  = 'meta_value_num';
+				$args['meta_key'] = '_average_rating'; // phpcs:ignore
+				break;
+			case 'popularity':
+				$args['orderby']  = 'meta_value_num';
+				$args['meta_key'] = 'total_sales'; // phpcs:ignore
+				break;
+			case 'title':
+				$args['orderby'] = 'title';
+				break;
+			default:
+				$args['orderby'] = 'date';
+		}
+		$cat = isset( $sett['category'] ) ? absint( $sett['category'] ) : 0;
+		if ( $cat > 0 ) {
+			$args['tax_query'] = array( // phpcs:ignore
+				array(
+					'taxonomy' => 'product_cat',
+					'field'    => 'term_id',
+					'terms'    => array( $cat ),
+				),
+			);
+		}
+		$q   = new \WP_Query( $args );
+		$out = '<div class="mel-loop mel-cols-' . $cols . ' ' . esc_attr( $cls ) . '">';
+		if ( ! $q->have_posts() ) {
+			$out .= '<p class="mel-loop-empty">' . esc_html__( 'No products found.', 'melintir' ) . '</p>';
+		}
+		while ( $q->have_posts() ) {
+			$q->the_post();
+			$product = wc_get_product( get_the_ID() );
+			if ( ! $product ) {
+				continue;
+			}
+			$out .= '<article class="mel-card">';
+			if ( ! empty( $sett['showImage'] ) ) {
+				$img = get_the_post_thumbnail( get_the_ID(), 'woocommerce_thumbnail' );
+				if ( '' === $img && function_exists( 'wc_placeholder_img' ) ) {
+					$img = wc_placeholder_img( 'woocommerce_thumbnail' );
+				}
+				$out .= '<a class="mel-card-img" href="' . esc_url( get_permalink() ) . '">' . $img . '</a>';
+			}
+			if ( ! empty( $sett['showBadge'] ) && $product->is_on_sale() ) {
+				$out .= '<span class="mel-badge">' . esc_html__( 'Sale!', 'melintir' ) . '</span>';
+			}
+			if ( ! empty( $sett['showTitle'] ) ) {
+				$out .= '<h3 class="mel-card-title"><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h3>';
+			}
+			if ( ! empty( $sett['showRating'] ) && function_exists( 'wc_get_rating_html' ) ) {
+				$stars = wc_get_rating_html( $product->get_average_rating(), $product->get_rating_count() );
+				if ( '' !== $stars ) {
+					$out .= '<div class="mel-stars">' . $stars . '</div>';
+				}
+			}
+			if ( ! empty( $sett['showPrice'] ) ) {
+				$out .= '<div class="mel-price">' . wp_kses_post( $product->get_price_html() ) . '</div>';
+			}
+			if ( ! empty( $sett['showCart'] ) && $product->is_purchasable() && $product->is_in_stock() ) {
+				if ( 'simple' === $product->get_type() && $product->supports( 'ajax_add_to_cart' ) ) {
+					$out .= '<a href="' . esc_url( $product->add_to_cart_url() ) . '" data-quantity="1" class="mel-addcart add_to_cart_button ajax_add_to_cart" data-product_id="' . esc_attr( (string) get_the_ID() ) . '" data-product_sku="' . esc_attr( $product->get_sku() ) . '">' . esc_html( $product->add_to_cart_text() ) . '</a>';
+				} else {
+					$out .= '<a href="' . esc_url( $product->add_to_cart_url() ) . '" class="mel-addcart">' . esc_html( $product->add_to_cart_text() ) . '</a>';
+				}
 			}
 			$out .= '</article>';
 		}

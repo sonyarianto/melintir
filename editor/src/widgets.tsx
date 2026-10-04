@@ -61,6 +61,7 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
       </figure>
     );
     case 'nav': return wrap(<NavPreview settings={s} />);
+    case 'products': return wrap(<ProductsPreview settings={s} />);
     default: return wrap(<div>?</div>);
   }
 }
@@ -105,6 +106,59 @@ function LoopPreview({ settings }: { settings: Record<string, any> }) {
           {settings.showExcerpt !== false && (
             <div className="mel-card-ex">{p.phantom ? 'Excerpt…' : stripTags(p.excerpt?.rendered || '').slice(0, 80)}</div>
           )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+/** Live product grid preview from the public Woo Store API; placeholders when Woo is off. */
+function ProductsPreview({ settings }: { settings: Record<string, any> }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  const perPage = Math.max(1, Math.min(20, +settings.count || 8));
+  const columns = Math.max(1, Math.min(4, +settings.columns || 4));
+  const category = +settings.category || 0;
+  const orderBy = ['date', 'price', 'rating', 'popularity', 'title'].includes(settings.orderBy) ? settings.orderBy : 'date';
+
+  useEffect(() => {
+    setItems(null);
+    const base = wpApiBase();
+    if (!base) return;
+    const d: any = (window as any).MelintirData;
+    const cat = category > 0 ? `category=${category}&` : '';
+    let alive = true;
+    fetch(wpApiUrl(base, '/wc/store/v1/products') + `${cat}per_page=${perPage}&orderby=${orderBy}`, {
+      headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {},
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => alive && setItems(Array.isArray(j) ? j : []))
+      .catch(() => alive && setItems([]));
+    return () => { alive = false; };
+  }, [perPage, category, orderBy]);
+
+  if (items !== null && items.length === 0) {
+    return <p className="mel-loop-empty">No products found (is WooCommerce active?).</p>;
+  }
+  const cards = items === null
+    ? Array.from({ length: Math.min(perPage, 4) }, (_, i) => ({ id: `ph-${i}`, phantom: true }))
+    : items;
+  return (
+    <div className={`mel-loop mel-cols-${columns}`}>
+      {cards.map((p: any) => (
+        <article key={p.id} className="mel-card">
+          {settings.showImage !== false && (
+            <div className="mel-card-img">{p.phantom ? '…' : (p.images?.[0]?.thumbnail ? <img src={p.images[0].thumbnail} alt="" loading="lazy" /> : '🛍')}</div>
+          )}
+          {settings.showBadge !== false && !p.phantom && p.on_sale && <span className="mel-badge">Sale!</span>}
+          {settings.showTitle !== false && <h3 className="mel-card-title">{p.phantom ? 'Product name' : p.name}</h3>}
+          {settings.showRating !== false && !p.phantom && +p.average_rating > 0 && (
+            <div className="mel-stars">{'★'.repeat(Math.round(+p.average_rating))}</div>
+          )}
+          {settings.showPrice !== false && (
+            p.phantom ? <div className="mel-price">$0.00</div>
+            : <div className="mel-price" dangerouslySetInnerHTML={{ __html: p.price_html || '' }} />
+          )}
+          {settings.showCart !== false && !p.phantom && <span className="mel-addcart">Add to cart</span>}
         </article>
       ))}
     </div>

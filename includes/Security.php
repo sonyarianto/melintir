@@ -14,7 +14,7 @@ class Security {
 	const ALLOWED_WIDGETS = array(
 		'heading', 'text', 'image', 'button',
 		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
-		'accordion', 'gallery', 'counter', 'testimonial', 'nav',
+		'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products',
 	);
 
 	const MAX_NODES = 1000;
@@ -294,10 +294,31 @@ class Security {
 				$out['columns']      = max( 1, min( 4, isset( $settings['columns'] ) ? intval( $settings['columns'] ) : 3 ) );
 				$out['order']        = $order;
 				$out['orderBy']      = $orderby;
-				$out['showImage']    = ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] );
-				$out['showTitle']    = ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] );
-				$out['showExcerpt']  = ! isset( $settings['showExcerpt'] ) || ! empty( $settings['showExcerpt'] );
-				break;
+			$out['showImage']    = ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] );
+			$out['showTitle']    = ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] );
+			$out['showExcerpt']  = ! isset( $settings['showExcerpt'] ) || ! empty( $settings['showExcerpt'] );
+			break;
+		case 'products':
+			$order = isset( $settings['order'] ) ? strtoupper( (string) $settings['order'] ) : 'DESC';
+			if ( 'ASC' !== $order && 'DESC' !== $order ) {
+				$order = 'DESC';
+			}
+			$orderby = isset( $settings['orderBy'] ) ? sanitize_key( (string) $settings['orderBy'] ) : 'date';
+			if ( ! in_array( $orderby, array( 'date', 'price', 'rating', 'popularity', 'title' ), true ) ) {
+				$orderby = 'date';
+			}
+			$out['count']       = max( 1, min( 20, isset( $settings['count'] ) ? intval( $settings['count'] ) : 8 ) );
+			$out['columns']     = max( 1, min( 4, isset( $settings['columns'] ) ? intval( $settings['columns'] ) : 4 ) );
+			$out['order']       = $order;
+			$out['orderBy']     = $orderby;
+			$out['category']    = isset( $settings['category'] ) ? absint( $settings['category'] ) : 0;
+			$out['showImage']   = ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] );
+			$out['showTitle']   = ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] );
+			$out['showPrice']   = ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] );
+			$out['showRating']  = ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] );
+			$out['showBadge']   = ! isset( $settings['showBadge'] ) || ! empty( $settings['showBadge'] );
+			$out['showCart']    = ! isset( $settings['showCart'] ) || ! empty( $settings['showCart'] );
+			break;
 			case 'accordion':
 				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();
 				$clean_items = array();

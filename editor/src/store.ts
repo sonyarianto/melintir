@@ -69,6 +69,10 @@ function defaults(type: WidgetType): Partial<MelNode> {
       settings: { menu: 0, layout: 'horizontal', showToggle: true },
       style: {},
     };
+    case 'products': return {
+      settings: { count: 8, columns: 4, order: 'DESC', orderBy: 'date', category: 0, showImage: true, showTitle: true, showPrice: true, showRating: true, showBadge: true, showCart: true },
+      style: {},
+    };
   }
 }
 
