@@ -292,6 +292,7 @@ class Renderer {
 			return '';
 		}
 		$css = ".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n";
+		$css .= self::globals_css( $doc );
 		$css .= ".mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n";
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
@@ -303,6 +304,26 @@ class Renderer {
 			$css = substr( $css, 0, 100 * 1024 );
 		}
 		return $css;
+	}
+
+	/**
+	 * :root variables from the global palette. Names/values re-validated
+	 * here so pre-existing or hand-edited postmeta can't inject rules.
+	 *
+	 * @param array $doc
+	 * @return string
+	 */
+	private static function globals_css( $doc ) {
+		$colors = isset( $doc['globals']['colors'] ) && is_array( $doc['globals']['colors'] ) ? $doc['globals']['colors'] : array();
+		$decls  = '';
+		foreach ( array_slice( $colors, 0, 20 ) as $name => $value ) {
+			$name = sanitize_key( (string) $name );
+			if ( '' === $name || ! sanitize_hex_color( (string) $value ) ) {
+				continue;
+			}
+			$decls .= '--mel-' . $name . ':' . (string) $value . ';';
+		}
+		return '' !== $decls ? ':root{' . $decls . "}\n" : '';
 	}
 
 	private static function node_css( $node ) {
@@ -358,7 +379,10 @@ class Renderer {
 				$d .= 'align-items:' . sanitize_text_field( (string) $l['align'] ) . ';';
 			}
 			if ( isset( $l['bg'] ) ) {
-				$d .= 'background:' . sanitize_text_field( (string) $l['bg'] ) . ';';
+				$bg = Security::sanitize_color( $l['bg'] );
+				if ( '' !== $bg ) {
+					$d .= 'background:' . $bg . ';';
+				}
 			}
 			if ( isset( $l['padding'] ) ) {
 				$d .= 'padding:' . intval( $l['padding'] ) . 'px;';
@@ -376,7 +400,10 @@ class Renderer {
 				$d .= 'font-weight:' . intval( $t['weight'] ) . ';';
 			}
 			if ( isset( $t['color'] ) ) {
-				$d .= 'color:' . sanitize_text_field( (string) $t['color'] ) . ';';
+				$tc = Security::sanitize_color( $t['color'] );
+				if ( '' !== $tc ) {
+					$d .= 'color:' . $tc . ';';
+				}
 			}
 		}
 		if ( isset( $style['customCss'] ) && is_string( $style['customCss'] ) ) {

@@ -8,7 +8,64 @@ pub fn generate_css(doc: &Document) -> String {
     if out.len() > 100 * 1024 {
         out.truncate(100 * 1024);
     }
-    out
+    // Prepend :root palette after the cap check would risk cutting it;
+    // globals are tiny, so build them first instead.
+    let mut with_globals = globals_css(doc);
+    with_globals.push_str(&out);
+    if with_globals.len() > 100 * 1024 {
+        with_globals.truncate(100 * 1024);
+    }
+    with_globals
+}
+
+/// :root{--mel-name: #hex; ...} from globals.colors. Names/values re-validated.
+fn globals_css(doc: &Document) -> String {
+    let mut decls = String::new();
+    if let Some(colors) = doc.globals.get("colors").and_then(|v| v.as_object()) {
+        for (name, value) in colors.iter().take(20) {
+            let clean_name: String = name
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                .take(32)
+                .collect();
+            if clean_name.is_empty() {
+                continue;
+            }
+            if let Some(hex) = value.as_str() {
+                if is_hex_color(hex) {
+                    decls.push_str(&format!("--mel-{clean_name}:{hex};"));
+                }
+            }
+        }
+    }
+    if decls.is_empty() {
+        String::new()
+    } else {
+        format!(":root{{{decls}}}\n")
+    }
+}
+
+fn is_hex_color(s: &str) -> bool {
+    let h = s.strip_prefix('#').unwrap_or("\0");
+    (h.len() == 3 || h.len() == 6) && h.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Hex or var(--mel-name); anything else becomes None (dropped).
+fn sanitize_color(v: &serde_json::Value) -> Option<String> {
+    let s = v.as_str()?;
+    if is_hex_color(s) {
+        return Some(s.to_string());
+    }
+    if s.starts_with("var(--mel-") && s.ends_with(')') {
+        let name = &s[10..s.len() - 1];
+        if !name.is_empty()
+            && name.len() <= 32
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return Some(s.to_string());
+        }
+    }
+    None
 }
 
 fn node_css(node: &Node, out: &mut String) {
@@ -59,9 +116,9 @@ fn style_decls(style: &Style) -> String {
     if let Some(v) = style.layout.get("align").and_then(|v| v.as_str()) {
         d.push_str(&format!("align-items:{v};"));
     }
-    if let Some(v) = style.layout.get("bg").and_then(|v| v.as_str()) {
-        if !v.is_empty() {
-            d.push_str(&format!("background:{v};"));
+    if let Some(v) = style.layout.get("bg") {
+        if let Some(c) = sanitize_color(v) {
+            d.push_str(&format!("background:{c};"));
         }
     }
     if let Some(v) = num(&style.layout, "padding") {
@@ -76,9 +133,9 @@ fn style_decls(style: &Style) -> String {
     if let Some(v) = num(&style.typo, "weight") {
         d.push_str(&format!("font-weight:{v};"));
     }
-    if let Some(v) = style.typo.get("color").and_then(|v| v.as_str()) {
-        if !v.is_empty() {
-            d.push_str(&format!("color:{v};"));
+    if let Some(v) = style.typo.get("color") {
+        if let Some(c) = sanitize_color(v) {
+            d.push_str(&format!("color:{c};"));
         }
     }
     if let Some(raw) = style.custom_css.as_deref() {
@@ -129,5 +186,21 @@ mod tests {
         let css = generate_css(&doc);
         assert!(css.contains(".mel-w001{"));
         assert!(css.contains("font-size:48px"));
+    }
+
+    /// Regression: PHP encodes empty maps as `[]`. Real saved docs must parse.
+    #[test]
+    fn php_shaped_doc_with_empty_arrays() {
+        let doc: Document = serde_json::from_value(serde_json::json!({
+            "version": "0.1.0",
+            "root": {"id":"root","elType":"container","settings":[],"style":{"layout":{"direction":"column","gap":20}},"elements":[
+                {"id":"w1","elType":"widget","widgetType":"heading","settings":{"text":"Hi"},"style":{"typo":{"color":"var(--mel-primary)"}},"elements":[]}
+            ]},
+            "globals": {"colors": {"primary": "#2563eb"}, "breakpoints": {"tablet": 1024, "mobile": 767}}
+        }))
+        .expect("php-shaped doc must parse");
+        let css = generate_css(&doc);
+        assert!(css.contains(":root{--mel-primary:#2563eb;}"), "missing :root, got: {css}");
+        assert!(css.contains(".mel-w1{color:var(--mel-primary);}"), "missing var ref, got: {css}");
     }
 }

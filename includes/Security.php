@@ -352,9 +352,15 @@ class Security {
 					$layout[ $k ] = max( 0, min( 200, intval( $style['layout'][ $k ] ) ) );
 				}
 			}
-			foreach ( array( 'justify', 'align', 'bg' ) as $k ) {
+			foreach ( array( 'justify', 'align' ) as $k ) {
 				if ( isset( $style['layout'][ $k ] ) ) {
 					$layout[ $k ] = sanitize_text_field( (string) $style['layout'][ $k ] );
+				}
+			}
+			if ( isset( $style['layout']['bg'] ) ) {
+				$bg = self::sanitize_color( $style['layout']['bg'] );
+				if ( '' !== $bg ) {
+					$layout['bg'] = $bg;
 				}
 			}
 			if ( ! empty( $layout ) ) {
@@ -370,7 +376,10 @@ class Security {
 				$typo['weight'] = max( 100, min( 900, intval( $style['typo']['weight'] ) ) );
 			}
 			if ( isset( $style['typo']['color'] ) ) {
-				$typo['color'] = sanitize_hex_color( (string) $style['typo']['color'] ) ? (string) $style['typo']['color'] : '#0f172a';
+				$typo['color'] = self::sanitize_color( $style['typo']['color'] );
+				if ( '' === $typo['color'] ) {
+					$typo['color'] = '#0f172a';
+				}
 			}
 			if ( ! empty( $typo ) ) {
 				$out['typo'] = $typo;
@@ -388,6 +397,24 @@ class Security {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * A color is either a hex value or a reference to a global palette
+	 * entry: var(--mel-name). Anything else is rejected.
+	 *
+	 * @param string $color
+	 * @return string sanitized value or empty string
+	 */
+	public static function sanitize_color( $color ) {
+		$color = trim( (string) $color );
+		if ( sanitize_hex_color( $color ) ) {
+			return $color;
+		}
+		if ( preg_match( '/^var\(--mel-[a-z0-9-]+\)$/', $color ) ) {
+			return $color;
+		}
+		return '';
 	}
 
 	private static function sanitize_color_map( $colors ) {

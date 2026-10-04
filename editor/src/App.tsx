@@ -41,7 +41,7 @@ function Num({ value, onChange }: { value: number | undefined; onChange: (v: num
 }
 
 export default function App() {
-  const { doc, selectedId, setSelected, addWidget, updateNode, removeNode, undo, redo, load, dirty } = useEditor();
+  const { doc, selectedId, setSelected, addWidget, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
   const [wasmOk, setWasmOk] = useState(false);
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
@@ -238,6 +238,7 @@ export default function App() {
             <button key={w} onClick={() => addWidget(w)}>{w}</button>
           ))}
         </div>
+        <GlobalsPanel colors={doc.globals?.colors || {}} onChange={setGlobals} />
         <h4>Templates</h4>
         <div className="mel-row">
           <button onClick={exportJson}>⬇ Export</button>
@@ -288,6 +289,7 @@ export default function App() {
             node={sel}
             bp={bp}
             scope={scopeOf(sel)}
+            globals={doc.globals?.colors || {}}
             onStyle={(p) => patchStyle(sel, p)}
             onSetting={(p) => setSetting(sel, p)}
             onRemove={() => removeNode(sel.id)}
@@ -305,10 +307,11 @@ export default function App() {
   );
 }
 
-function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
+  globals: Record<string, string>;
   onStyle: (p: Record<string, any>) => void;
   onSetting: (p: Record<string, any>) => void;
   onRemove: () => void;
@@ -335,7 +338,7 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
           <Field label="Gap (px)"><Num value={L.gap} onChange={(v) => onStyle({ layout: { gap: v } })} /></Field>
           <Field label="Padding (px)"><Num value={L.padding} onChange={(v) => onStyle({ layout: { padding: v } })} /></Field>
           <Field label="Background">
-            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(L.bg || '') ? L.bg : '#ffffff'} onChange={(e) => onStyle({ layout: { bg: e.target.value } })} />
+            <ColorField value={L.bg || ''} globals={globals} fallback="#ffffff" onChange={(v) => onStyle({ layout: { bg: v } })} />
           </Field>
           <Field label="Justify">
             <select value={L.justify || ''} onChange={(e) => onStyle({ layout: { justify: e.target.value || undefined } })}>
@@ -374,7 +377,7 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
             </select>
           </Field>
           <Field label="Color">
-            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(T.color || '') ? T.color : '#0f172a'} onChange={(e) => onStyle({ typo: { color: e.target.value } })} />
+            <ColorField value={T.color || ''} globals={globals} fallback="#0f172a" onChange={(v) => onStyle({ typo: { color: v } })} />
           </Field>
         </>
       )}
@@ -674,5 +677,65 @@ function TagButtons({ current, onPick }: { current: string; onPick: (v: string) 
         </button>
       ))}
     </div>
+  );
+}
+
+const isHex6 = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v || '');
+const isMelVar = (v: string) => /^var\(--mel-[a-z0-9-]+\)$/.test(v || '');
+
+/** Color picker + global swatch select. Writes hex or var(--mel-name). */
+function ColorField({ value, globals, fallback, onChange }: {
+  value: string;
+  globals: Record<string, string>;
+  fallback: string;
+  onChange: (v: string) => void;
+}) {
+  const names = Object.keys(globals || {});
+  return (
+    <div className="mel-row">
+      <input type="color" value={isHex6(value) ? value : fallback} onChange={(e) => onChange(e.target.value)} />
+      <select
+        value={isMelVar(value) ? value : ''}
+        onChange={(e) => { if (e.target.value) onChange(e.target.value); }}
+        title="Global swatch"
+      >
+        <option value="">custom</option>
+        {names.map((n) => <option key={n} value={`var(--mel-${n})`}>{n}</option>)}
+      </select>
+    </div>
+  );
+}
+
+/** Global palette: name + hex rows, add/remove. Change propagates via CSS vars. */
+function GlobalsPanel({ colors, onChange }: {
+  colors: Record<string, string>;
+  onChange: (c: Record<string, string>) => void;
+}) {
+  const [name, setName] = useState('accent');
+  const [hex, setHex] = useState('#2563eb');
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  return (
+    <>
+      <h4>Globals</h4>
+      {Object.entries(colors || {}).map(([n, h]) => (
+        <div key={n} className="mel-row">
+          <span className="mel-status" title={`var(--mel-${n})`}>{n}</span>
+          <input
+            type="color"
+            value={isHex6(h) ? h : '#000000'}
+            onChange={(e) => onChange({ ...colors, [n]: e.target.value })}
+          />
+          <button onClick={() => { const c = { ...colors }; delete c[n]; onChange(c); }}>✕</button>
+        </div>
+      ))}
+      <div className="mel-row">
+        <input placeholder="name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input type="color" value={isHex6(hex) ? hex : '#2563eb'} onChange={(e) => setHex(e.target.value)} />
+        <button onClick={() => {
+          const k = slug(name);
+          if (k && isHex6(hex)) onChange({ ...colors, [k]: hex });
+        }}>+</button>
+      </div>
+    </>
   );
 }

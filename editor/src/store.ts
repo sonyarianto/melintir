@@ -14,6 +14,7 @@ interface EditorState {
   undo: () => void;
   redo: () => void;
   load: (doc: MelDoc, markDirty?: boolean) => void;
+  setGlobals: (colors: Record<string, string>) => void;
 }
 
 const snap = (doc: MelDoc) => JSON.stringify(doc);
@@ -111,4 +112,8 @@ export const useEditor = create<EditorState>((set, get) => ({
     const past = JSON.stringify(doc) === prev ? s.past : [...s.past.slice(-49), prev];
     return { doc, past, future: [], dirty: markDirty, selectedId: null };
   }),
+  setGlobals: (colors) => set((s) => ({
+    past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true,
+    doc: { ...s.doc, globals: { ...s.doc.globals, colors } },
+  })),
 }));
