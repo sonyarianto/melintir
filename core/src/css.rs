@@ -81,6 +81,15 @@ fn style_decls(style: &Style) -> String {
             d.push_str(&format!("color:{v};"));
         }
     }
+    if let Some(raw) = style.custom_css.as_deref() {
+        let clean = sanitize_custom_css(raw);
+        if !clean.is_empty() {
+            d.push_str(&clean);
+            if !clean.ends_with(';') {
+                d.push(';');
+            }
+        }
+    }
     d
 }
 
@@ -90,6 +99,19 @@ fn num(map: &std::collections::HashMap<String, serde_json::Value>, key: &str) ->
 
 fn sanitize_id(id: &str) -> String {
     id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(32).collect()
+}
+
+fn sanitize_custom_css(raw: &str) -> String {
+    let mut s: String = raw.chars().take(2048).collect();
+    for pat in ["</style", "<style", "<script", "</script", "expression(", "javascript:", "behavior:", "@import"] {
+        // Case-insensitive removal without regex (no_std-friendly approach).
+        loop {
+            let lower = s.to_lowercase();
+            let Some(pos) = lower.find(pat) else { break };
+            s.replace_range(pos..pos + pat.len(), "");
+        }
+    }
+    s.trim().to_string()
 }
 
 #[cfg(test)]

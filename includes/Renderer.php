@@ -322,6 +322,10 @@ class Renderer {
 				$d .= 'color:' . sanitize_text_field( (string) $t['color'] ) . ';';
 			}
 		}
+		if ( isset( $style['customCss'] ) && is_string( $style['customCss'] ) ) {
+			// Already sanitized on save; scoped to this node's selector by the caller.
+			$d .= rtrim( trim( $style['customCss'] ), ';' ) . ';';
+		}
 		return $d;
 	}
 

@@ -308,6 +308,23 @@ class Security {
 
 	private static function sanitize_style( $style ) {
 		$out = array();
+		// Custom CSS (declarations only, e.g. "transform: rotate(2deg)").
+		// Always scoped to .mel-{id} by the generators, so no selectors.
+		if ( isset( $style['customCss'] ) && is_string( $style['customCss'] ) ) {
+			$css = substr( trim( $style['customCss'] ), 0, 2048 );
+			// Never allow breaking out of the <style> element or url()/expression tricks.
+			// (<script> text would be inert inside a stylesheet, but strip it anyway.)
+			$css = preg_replace( '#</?style[^>]*>#i', '', $css );
+			$css = preg_replace( '#<script[^>]*>.*?</script>#is', '', $css );
+			$css = preg_replace( '#expression\s*\(#i', '', $css );
+			$css = preg_replace( '#javascript\s*:#i', '', $css );
+			$css = preg_replace( '#behavior\s*:#i', '', $css );
+			$css = preg_replace( '#@import[^;]*;?#i', '', $css );
+			$css = trim( $css );
+			if ( '' !== $css ) {
+				$out['customCss'] = $css;
+			}
+		}
 		// Keep it small on purpose for v0.1. Numbers clamped to sane ranges.
 		if ( isset( $style['layout'] ) && is_array( $style['layout'] ) ) {
 			$layout = array();

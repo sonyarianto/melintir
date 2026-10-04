@@ -127,17 +127,21 @@ export default function App() {
 
   /** Merge a style patch into the active breakpoint scope. */
   const patchStyle = (node: MelNode, patch: Record<string, any>) => {
+    const mergeInto = (target: Record<string, any>) => {
+      const merged: Record<string, any> = { ...target };
+      for (const k of Object.keys(patch)) {
+        const oldV = target?.[k];
+        const newV = patch[k];
+        merged[k] = oldV && newV && typeof oldV === 'object' && typeof newV === 'object' && !Array.isArray(newV)
+          ? { ...oldV, ...newV }
+          : newV;
+      }
+      return merged;
+    };
     if (bp === 'desktop') {
-      const merged: Record<string, any> = { ...node.style };
-      for (const k of Object.keys(patch)) {
-        merged[k] = { ...((node.style as any)?.[k] || {}), ...patch[k] };
-      }
-      updateNode(node.id, { style: merged as any });
+      updateNode(node.id, { style: mergeInto((node.style || {}) as any) as any });
     } else {
-      const scope = { ...((node.style as any)?.[bp] || {}) };
-      for (const k of Object.keys(patch)) {
-        scope[k] = { ...(scope[k] || {}), ...patch[k] };
-      }
+      const scope = mergeInto(((node.style as any)?.[bp] || {}) as any);
       updateNode(node.id, { style: { [bp]: scope } as any });
     }
   };
@@ -455,6 +459,8 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
         </>
       )}
 
+      <AdvancedCss node={node} bp={bp} onStyle={(p) => onStyle(p)} />
+
       {node.widgetType === 'form' && (
         <>
           {(s.fields || []).map((f: any, i: number) => (
@@ -504,6 +510,29 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
       {(node.widgetType === 'text' || node.widgetType === 'button') && (
         <Field label="Text size (px)"><Num value={T.size} onChange={(v) => onStyle({ typo: { size: v } })} /></Field>
       )}
+    </div>
+  );
+}
+
+/** Declarations-only custom CSS, auto-scoped to .mel-{id} by the generators. */
+function AdvancedCss({ node, bp, onStyle }: {
+  node: MelNode;
+  bp: BP;
+  onStyle: (p: Record<string, any>) => void;
+}) {
+  const scope = bp === 'desktop' ? (node.style as any) : ((node.style as any)?.[bp] || {});
+  return (
+    <div className="mel-advanced">
+      <h4>Advanced{bp !== 'desktop' && <span className="mel-bpbadge">· {bp}</span>}</h4>
+      <Field label="Custom CSS (declarations)">
+        <textarea
+          rows={3}
+          spellCheck={false}
+          placeholder="transform: rotate(2deg)"
+          value={typeof scope?.customCss === 'string' ? scope.customCss : ''}
+          onChange={(e) => onStyle({ customCss: e.target.value })}
+        />
+      </Field>
     </div>
   );
 }

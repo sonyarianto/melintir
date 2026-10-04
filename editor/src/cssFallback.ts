@@ -35,6 +35,10 @@ export function generateCssFallback(doc: MelDoc): string {
     if (t.size != null) d += `font-size:${t.size | 0}px;`;
     if (t.weight != null) d += `font-weight:${t.weight | 0};`;
     if (t.color) d += `color:${t.color};`;
+    if (typeof s.customCss === 'string' && s.customCss.trim()) {
+      const c = s.customCss.replace(/<\/?style[^>]*>/gi, '').replace(/<script[^>]*>.*?<\/script>/gis, '').slice(0, 2048).trim().replace(/;?$/, ';');
+      d += c;
+    }
     return d;
   };
   walk(doc.root);

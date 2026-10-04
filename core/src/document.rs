@@ -33,6 +33,8 @@ pub struct Style {
     pub layout: HashMap<String, serde_json::Value>,
     #[serde(default)]
     pub typo: HashMap<String, serde_json::Value>,
+    #[serde(rename = "customCss", default)]
+    pub custom_css: Option<String>,
     #[serde(default)]
     pub tablet: Option<Box<Style>>,
     #[serde(default)]
