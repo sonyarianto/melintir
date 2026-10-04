@@ -1,33 +1,77 @@
 === Melintir ===
 Contributors: melintir
-Tags: page builder, gutenberg, elementor alternative, wasm
+Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Open-source page builder with Rust/WASM brain. Container-only, fast frontend.
+Open-source page builder with a Rust/WASM brain. Container-only, fast frontend.
 
 == Description ==
 
-Melintir v0.1: 9 widgets (Container, Heading, Text, Image, Button, Video, Divider, Spacer, Icon Box, Tabs), responsive controls, undo/redo, import/export JSON, PHP renderer + CSS cache.
+Melintir is an open-source page builder for people who like Elementor's
+workflow but not its weight. The editor is a normal React app; the brain —
+document model, CSS generation, validation — is a small Rust core compiled
+to WebAssembly, so style calculations stay instant even on huge pages.
 
-Frontend visitors get plain HTML+CSS, no WASM, no jQuery.
+What you get in 0.1.0:
+
+* 10 content widgets: Container, Heading, Text, Image, Button, Video,
+  Divider, Spacer, Icon Box, Tabs — plus a Form widget (lite) with entries
+  stored in WordPress and emailed to the admin.
+* Responsive controls (desktop / tablet / mobile) with live canvas preview.
+* Undo/redo, autosave-ready REST API, starter templates, JSON import/export.
+* Elementor migrator: convert `_elementor_data` to Melintir via
+  `wp melintir migrate <post-id> [--dry-run]` or the REST endpoint.
+* Visitor frontend is plain HTML + one cached CSS file + ~1KB of JS.
+  No WASM, no jQuery, no editor runtime on the public site.
 
 == Installation ==
 
-1. Copy this folder to `wp-content/plugins/melintir/` (or symlink for dev).
-2. `npm --prefix editor install && npm --prefix editor run build`
-3. `wasm-pack build core --target web --out-dir assets/core --out-name melintir-core`
-4. Activate in wp-admin > Plugins.
-5. Edit a Page > "Edit with Melintir".
+1. Upload this folder to `wp-content/plugins/melintir/` and activate.
+   (Developers: `make all` rebuilds the WASM core and the editor.)
+2. Edit any Page, then choose "Edit with Melintir" (Posts list row action
+   or the Melintir admin menu).
+3. Pick a starter template or build from widgets, Save, view the page.
 
 == Frequently Asked Questions ==
 
-= Does the visitor need WASM? =
-No. WASM runs only in the editor (admin). Visitors get HTML+CSS.
+= Does the visitor's browser need WebAssembly? =
+No. WASM runs only in the editor (wp-admin), where it generates CSS
+instantly. Visitors receive plain HTML + CSS.
 
 = How is this faster than Elementor? =
-Container-only, single CSS file per page, <30KB frontend JS, no editor runtime on frontend.
+Container-only layout (no legacy section/column wrappers), a single CSS
+file per page cached in postmeta, and a frontend script under 1KB.
+The editor never loads on the public site.
+
+= Can I migrate from Elementor? =
+Yes — for content pages. Run `wp melintir migrate <post-id> --dry-run`
+first to see what maps and what is skipped (third-party widgets, motion
+effects, custom CSS and column % widths are reported, not silently dropped).
+
+= Where do form entries go? =
+Melintir > Entries in wp-admin, plus an email to the site admin.
+Spam defense in 0.1.0 is nonce + honeypot.
+
+= Will updating/deleting the plugin destroy my pages? =
+No. Page data lives in `_melintir_data` postmeta and is kept on
+uninstall; only generated CSS cache files are removed.
+
+== Screenshots ==
+
+1. Editor with panel, canvas preview and breakpoint switcher.
+2. Per-widget inspector controls.
+3. Starter templates, JSON import/export.
+4. Form entries list.
+
+== Changelog ==
+
+= 0.1.0 =
+* Initial release: 10 content widgets + lite form widget.
+* Responsive editing, undo/redo, templates, import/export.
+* Elementor migrator (WP-CLI + REST, dry-run support).
+* Rust/WASM CSS engine with JS fallback.

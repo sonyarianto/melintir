@@ -32,4 +32,9 @@ Melintir\Form::register();
 
 register_activation_hook( __FILE__, array( 'Melintir\\Plugin', 'activate' ) );
 
+add_action( 'init', 'melintir_load_textdomain' );
+function melintir_load_textdomain() {
+	load_plugin_textdomain( 'melintir', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}
+
 add_action( 'plugins_loaded', array( 'Melintir\\Plugin', 'instance' ) );
