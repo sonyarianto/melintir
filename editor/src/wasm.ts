@@ -19,7 +19,12 @@ export async function initWasm(): Promise<boolean> {
   try {
     // wasm-pack web target exposes a default init() from melintir-core.js
     const mod: any = await import(/* @vite-ignore */ wasmJs);
-    await mod.default?.(window.MelintirData?.wasmUrl);
+    // Object form (newer wasm-pack); falls back to legacy string form.
+    try {
+      await mod.default?.({ module_or_path: window.MelintirData?.wasmUrl });
+    } catch {
+      await mod.default?.(window.MelintirData?.wasmUrl);
+    }
     core = mod as CoreApi;
     useWasm = true;
     return true;
