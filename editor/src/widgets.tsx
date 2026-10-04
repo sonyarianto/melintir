@@ -60,6 +60,7 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
         <figcaption><span className="mel-tname">{s.name}</span> <span className="mel-trole">{s.role}</span></figcaption>
       </figure>
     );
+    case 'nav': return wrap(<NavPreview settings={s} />);
     default: return wrap(<div>?</div>);
   }
 }
@@ -114,4 +115,54 @@ function stripTags(html: string): string {
   const div = document.createElement('div');
   div.innerHTML = html;
   return div.textContent || '';
+}
+
+export interface WpMenu {
+  id: number;
+  name: string;
+}
+
+export function wpApiBase(): string | null {
+  const d: any = (window as any).MelintirData;
+  if (typeof d?.restUrl !== 'string') return null;
+  return d.restUrl.split('/melintir/v1')[0];
+}
+
+export function wpApiUrl(base: string, path: string): string {
+  return base.includes('?') ? `${base}${path}&` : `${base}${path}?`;
+}
+
+/** Live menu preview: item titles from wp/v2, placeholder when unassigned. */
+function NavPreview({ settings }: { settings: Record<string, any> }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  const menuId = +settings.menu || 0;
+
+  useEffect(() => {
+    setItems(null);
+    const base = wpApiBase();
+    if (!base || !menuId) return;
+    let alive = true;
+    const d: any = (window as any).MelintirData;
+    fetch(wpApiUrl(base, '/wp/v2/menu-items') + `menus=${menuId}&per_page=20&_fields=id,title,url`, {
+      headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {},
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => alive && setItems(Array.isArray(j) ? j : []))
+      .catch(() => alive && setItems([]));
+    return () => { alive = false; };
+  }, [menuId]);
+
+  if (!menuId) return <nav className="mel-nav"><span className="mel-nav-empty">Select a menu</span></nav>;
+  const layout = settings.layout === 'vertical' ? 'vertical' : 'horizontal';
+  return (
+    <nav className={`mel-nav mel-nav-${layout}`}>
+      <ul className="mel-nav-list">
+        {items === null && <li>…</li>}
+        {items !== null && items.length === 0 && <li>Menu is empty</li>}
+        {(items || []).map((it: any) => (
+          <li key={it.id}><span>{stripTags(it.title?.rendered || '')}</span></li>
+        ))}
+      </ul>
+    </nav>
+  );
 }

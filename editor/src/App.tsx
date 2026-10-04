@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useEditor } from './store';
 import { generateCss, initWasm, isWasm } from './wasm';
-import { PreviewNode } from './widgets';
+import { PreviewNode, wpApiBase, wpApiUrl, type WpMenu } from './widgets';
 import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav'];
 
 declare global {
   interface Window {
@@ -533,6 +533,10 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
         </>
       )}
 
+      {node.widgetType === 'nav' && (
+        <NavInspector node={node} onSetting={(p) => onSetting(p)} />
+      )}
+
       <AdvancedCss node={node} bp={bp} onStyle={(p) => onStyle(p)} />
 
       {node.widgetType === 'form' && (
@@ -612,5 +616,44 @@ function AdvancedCss({ node, bp, onStyle }: {
         />
       </Field>
     </div>
+  );
+}
+
+/** Menu picker with live wp/v2 menu list. */
+function NavInspector({ node, onSetting }: {
+  node: MelNode;
+  onSetting: (p: Record<string, any>) => void;
+}) {
+  const s = node.settings || {};
+  const [menus, setMenus] = useState<WpMenu[]>([]);
+  useEffect(() => {
+    const base = wpApiBase();
+    if (!base) return;
+    const d: any = (window as any).MelintirData;
+    fetch(wpApiUrl(base, '/wp/v2/menus') + 'per_page=50&_fields=id,name', {
+      headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {},
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => Array.isArray(j) && setMenus(j))
+      .catch(() => {});
+  }, []);
+  return (
+    <>
+      <Field label="Menu">
+        <select value={s.menu || 0} onChange={(e) => onSetting({ menu: +e.target.value })}>
+          <option value={0}>— Select —</option>
+          {menus.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Layout">
+        <select value={s.layout || 'horizontal'} onChange={(e) => onSetting({ layout: e.target.value })}>
+          <option value="horizontal">horizontal</option>
+          <option value="vertical">vertical</option>
+        </select>
+      </Field>
+      <div className="mel-row">
+        <label><input type="checkbox" checked={s.showToggle !== false} onChange={(e) => onSetting({ showToggle: e.target.checked })} /> hamburger on mobile</label>
+      </div>
+    </>
   );
 }

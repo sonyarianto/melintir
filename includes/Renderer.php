@@ -161,6 +161,8 @@ class Renderer {
 					$out .= '<span class="mel-trole">' . $role . '</span>';
 				}
 				return $out . '</figcaption></figure>';
+			case 'nav':
+				return self::render_nav( $id, $cls, $sett );
 			default:
 				return '';
 		}
@@ -246,6 +248,7 @@ class Renderer {
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
 		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
+		$css .= ".mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-list a{text-decoration:none;color:inherit}.mel-nav-sub{list-style:none;margin:4px 0 0 12px;padding:0}.mel-nav-check{display:none}.mel-nav-burger{display:none;cursor:pointer;font-size:24px}@media(max-width:767px){.mel-has-toggle .mel-nav-burger{display:block}.mel-has-toggle .mel-nav-list{display:none;flex-direction:column}.mel-has-toggle .mel-nav-check:checked+.mel-nav-burger+.mel-nav-list{display:flex}}\n";
 		$css .= self::node_css( $doc['root'] );
 		// Cap to avoid runaway postmeta.
 		if ( strlen( $css ) > 100 * 1024 ) {
@@ -374,5 +377,53 @@ class Renderer {
 		}
 		wp_reset_postdata();
 		return $out . '</div>';
+	}
+
+	/**
+	 * WP menu as horizontal/vertical nav with a CSS-only mobile toggle
+	 * (checkbox hack — no JS required).
+	 *
+	 * @param string $id
+	 * @param string $cls
+	 * @param array  $sett
+	 * @return string
+	 */
+	private static function render_nav( $id, $cls, $sett ) {
+		$layout = ( isset( $sett['layout'] ) && 'vertical' === $sett['layout'] ) ? 'vertical' : 'horizontal';
+		$menu_id = isset( $sett['menu'] ) ? absint( $sett['menu'] ) : 0;
+		$toggle  = ! empty( $sett['showToggle'] );
+		$out     = '<nav class="mel-nav mel-nav-' . $layout . ( $toggle ? ' mel-has-toggle' : '' ) . ' ' . esc_attr( $cls ) . '">';
+		if ( ! $menu_id || ! wp_get_nav_menu_object( $menu_id ) ) {
+			return $out . '<span class="mel-nav-empty">' . esc_html__( 'Select a menu', 'melintir' ) . '</span></nav>';
+		}
+		$items = wp_get_nav_menu_items( $menu_id );
+		if ( ! $items ) {
+			return $out . '<span class="mel-nav-empty">' . esc_html__( 'Menu is empty', 'melintir' ) . '</span></nav>';
+		}
+		if ( ! empty( $sett['showToggle'] ) ) {
+			$out .= '<input type="checkbox" id="meln-' . esc_attr( $id ) . '" class="mel-nav-check" />';
+			$out .= '<label class="mel-nav-burger" for="meln-' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Menu', 'melintir' ) . '">☰</label>';
+		}
+		$out .= '<ul class="mel-nav-list">' . self::nav_items( $items, 0, 0 ) . '</ul></nav>';
+		return $out;
+	}
+
+	private static function nav_items( $items, $parent, $depth ) {
+		if ( $depth > 3 ) {
+			return '';
+		}
+		$out = '';
+		foreach ( (array) $items as $it ) {
+			if ( intval( $it->menu_item_parent ) !== intval( $parent ) ) {
+				continue;
+			}
+			$out .= '<li><a href="' . esc_url( $it->url ) . '">' . esc_html( $it->title ) . '</a>';
+			$sub  = self::nav_items( $items, $it->ID, $depth + 1 );
+			if ( '' !== $sub ) {
+				$out .= '<ul class="mel-nav-sub">' . $sub . '</ul>';
+			}
+			$out .= '</li>';
+		}
+		return $out;
 	}
 }

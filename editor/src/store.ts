@@ -63,6 +63,10 @@ function defaults(type: WidgetType): Partial<MelNode> {
       settings: { quote: 'Melintir is blazing fast.', name: 'Jane Doe', role: 'Founder', avatar: '' },
       style: {},
     };
+    case 'nav': return {
+      settings: { menu: 0, layout: 'horizontal', showToggle: true },
+      style: {},
+    };
   }
 }
 

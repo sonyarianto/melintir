@@ -8,6 +8,7 @@ export function generateCssFallback(doc: MelDoc): string {
   let out = '.mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n';
   out += '.mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n';
   out += '.mel-gallery{display:grid;gap:12px}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px}\n';
+  out += '.mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-burger{display:none}\n';
   const walk = (n: any) => {
     const sel = `.mel-${String(n.id).replace(/[^a-zA-Z0-9_-]/g, '')}`;
     const decl = decls(n.style || {});

@@ -14,7 +14,7 @@ class Security {
 	const ALLOWED_WIDGETS = array(
 		'heading', 'text', 'image', 'button',
 		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
-		'accordion', 'gallery', 'counter', 'testimonial',
+		'accordion', 'gallery', 'counter', 'testimonial', 'nav',
 	);
 
 	const MAX_NODES = 1000;
@@ -301,6 +301,16 @@ class Security {
 				$out['name']  = isset( $settings['name'] ) ? sanitize_text_field( (string) $settings['name'] ) : '';
 				$out['role']  = isset( $settings['role'] ) ? sanitize_text_field( (string) $settings['role'] ) : '';
 				$out['avatar'] = isset( $settings['avatar'] ) ? esc_url_raw( (string) $settings['avatar'] ) : '';
+				break;
+			case 'nav':
+				$menu_id = isset( $settings['menu'] ) ? absint( $settings['menu'] ) : 0;
+				if ( $menu_id && ! wp_get_nav_menu_object( $menu_id ) ) {
+					$menu_id = 0;
+				}
+				$out['menu']      = $menu_id;
+				$layout           = isset( $settings['layout'] ) ? (string) $settings['layout'] : 'horizontal';
+				$out['layout']    = 'vertical' === $layout ? 'vertical' : 'horizontal';
+				$out['showToggle'] = ! isset( $settings['showToggle'] ) || ! empty( $settings['showToggle'] );
 				break;
 			default:
 				// divider, spacer: no user HTML.
