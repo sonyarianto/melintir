@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.9.0:
+What you get in 0.10.0:
 
 * 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
@@ -88,6 +88,12 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.10.0 =
+* Theme.json bridge: one-click import of the active theme palette into
+  globals as theme-* (FSE brand consistency).
+* Box depth for every node: shadow presets, borders, gradients with a
+  shared inspector section and instant canvas preview.
 
 = 0.9.0 =
 * 5 new widgets: Countdown (server-painted + JS ticker), Carousel
