@@ -32,6 +32,8 @@ class Plugin {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_filter( 'page_row_actions', array( $this, 'row_action' ), 10, 2 );
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 81 );
+		add_action( 'admin_notices', array( $this, 'edit_notice' ) );
 	}
 
 	public function menu() {
@@ -161,10 +163,69 @@ class Plugin {
 
 	public function row_action( $actions, $post ) {
 		if ( isset( $post->ID ) && Security::can_edit( $post->ID ) ) {
-			$url = admin_url( 'admin.php?page=melintir&post=' . $post->ID );
-			$actions['melintir'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Melintir', 'melintir' ) . '</a>';
+			$actions['melintir'] = $this->edit_link( $post->ID );
 		}
 		return $actions;
+	}
+
+	private function edit_link( $post_id ) {
+		$url = admin_url( 'admin.php?page=melintir&post=' . intval( $post_id ) );
+		return '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Melintir', 'melintir' ) . '</a>';
+	}
+
+	/**
+	 * Admin-bar shortcut, frontend and backend. On post.php it resolves the
+	 * edited post; on the frontend the queried object. Capability-gated.
+	 *
+	 * @param \WP_Admin_Bar $bar
+	 */
+	public function admin_bar( $bar ) {
+		if ( ! function_exists( 'is_admin_bar_showing' ) || ! is_admin_bar_showing() ) {
+			return;
+		}
+		$post_id = 0;
+		if ( is_admin() ) {
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( $screen && 'post' === $screen->base && ! empty( $_GET['post'] ) ) { // phpcs:ignore
+				$post_id = absint( $_GET['post'] ); // phpcs:ignore
+			}
+		} elseif ( is_singular() ) {
+			$post_id = get_the_ID();
+		}
+		if ( ! $post_id || ! Security::can_edit( $post_id ) ) {
+			return;
+		}
+		$bar->add_node(
+			array(
+				'id'    => 'melintir-edit',
+				'title' => esc_html__( 'Edit with Melintir', 'melintir' ),
+				'href'  => admin_url( 'admin.php?page=melintir&post=' . $post_id ),
+			)
+		);
+	}
+
+	/**
+	 * Edit-screen notice (works in Gutenberg and Classic alike): one click
+	 * into the builder without hunting row actions.
+	 */
+	public function edit_notice() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'post' !== $screen->base || empty( $_GET['post'] ) ) { // phpcs:ignore
+			return;
+		}
+		$post_id = absint( $_GET['post'] ); // phpcs:ignore
+		echo self::edit_notice_html( $post_id ); // phpcs:ignore
+	}
+
+	public static function edit_notice_html( $post_id ) {
+		if ( ! Security::can_edit( $post_id ) ) {
+			return '';
+		}
+		$url = admin_url( 'admin.php?page=melintir&post=' . intval( $post_id ) );
+		return '<div class="notice notice-info melintir-notice"><p>'
+			. esc_html__( 'Design this content visually: ', 'melintir' )
+			. '<a class="button button-primary" href="' . esc_url( $url ) . '">'
+			. esc_html__( 'Edit with Melintir', 'melintir' ) . '</a></p></div>';
 	}
 
 	public function the_content( $content ) {

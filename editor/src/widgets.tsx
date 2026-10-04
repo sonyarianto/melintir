@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type DragEvent } from 'react';
+import { Fragment, useEffect, useState, type DragEvent, type FocusEvent, type KeyboardEvent } from 'react';
 import type { MelNode } from './types';
 
 /** Drag-and-drop context threaded from App (absent = static preview). */
@@ -26,21 +26,37 @@ export function DropSlot({ parentId, index, dnd }: { parentId: string; index: nu
   );
 }
 
-export function PreviewNode({ node, selected, onSelect, dnd }: { node: MelNode; selected: boolean; onSelect: (id: string) => void; dnd?: DndCtx }) {
-  const cls = `mel-${node.id}${selected ? ' mel-selected' : ''}`;
+export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit, dnd }: {
+  node: MelNode;
+  selected: boolean;
+  selectedId?: string | null;
+  onSelect: (id: string) => void;
+  onInlineEdit?: (id: string, field: string, value: string) => void;
+  dnd?: DndCtx;
+}) {
+  const isSel = selected || selectedId === node.id;
+  const cls = `mel-${node.id}${isSel ? ' mel-selected' : ''}`;
+  const guardEdit = (e: DragEvent) => {
+    // Text being edited must never start a block drag.
+    if ((e.target as HTMLElement).isContentEditable) {
+      e.preventDefault();
+      return true;
+    }
+    return false;
+  };
   if (node.elType === 'container') {
     return (
       <div
         className={`mel-container ${cls}${dnd ? ' mel-draggable' : ''}`}
         draggable={!!dnd}
-        onDragStart={(e) => { e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
+        onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
         onDragEnd={dnd?.onDragEnd}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
       >
         {(node.elements || []).map((c, i) => (
           <Fragment key={c.id}>
             <DropSlot parentId={node.id} index={i} dnd={dnd} />
-            <PreviewNode node={c} selected={false} onSelect={onSelect} dnd={dnd} />
+            <PreviewNode node={c} selected={false} selectedId={selectedId} onSelect={onSelect} onInlineEdit={onInlineEdit} dnd={dnd} />
           </Fragment>
         ))}
         <DropSlot parentId={node.id} index={(node.elements || []).length} dnd={dnd} />
@@ -53,19 +69,37 @@ export function PreviewNode({ node, selected, onSelect, dnd }: { node: MelNode; 
     <div
       className={`${cls}${dnd ? ' mel-draggable' : ''}`}
       draggable={!!dnd}
-      onDragStart={(e) => { e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
+      onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
       onDragEnd={dnd?.onDragEnd}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
     >{inner}</div>
   );
+  /** Plain-text widgets become editable once selected; blur commits. */
+  const editable = (field: string, current: string, multiline: boolean) => {
+    if (!onInlineEdit || !isSel) return null;
+    return {
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      onBlur: (e: FocusEvent<HTMLElement>) => {
+        const v = e.currentTarget.textContent || '';
+        if (v !== current) onInlineEdit(node.id, field, v);
+      },
+      onKeyDown: multiline ? undefined : (e: KeyboardEvent<HTMLElement>) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          (e.target as HTMLElement).blur();
+        }
+      },
+    };
+  };
   switch (node.widgetType) {
     case 'heading': {
       const Tag = (s.tag || 'h2') as any;
-      return wrap(<Tag className="mel-heading">{s.text}</Tag>);
+      return wrap(<Tag className="mel-heading" {...editable('text', s.text || '', false)}>{s.text}</Tag>);
     }
     case 'text': return wrap(<div className="mel-text" dangerouslySetInnerHTML={{ __html: s.html || '' }} />);
     case 'image': return wrap(<figure className="mel-image">{s.url ? <img src={s.url} alt={s.alt || ''} loading="lazy" /> : 'No image'}</figure>);
-    case 'button': return wrap(<div className="mel-btn-wrap"><span className="mel-btn">{s.text}</span></div>);
+    case 'button': return wrap(<div className="mel-btn-wrap"><span className="mel-btn" {...editable('text', s.text || '', false)}>{s.text}</span></div>);
     case 'video': return wrap(<div className="mel-video">🎬 {s.url || 'No URL'}</div>);
     case 'divider': return wrap(<hr className="mel-divider" />);
     case 'spacer': return wrap(<div className="mel-spacer" style={{ height: 24 }} />);

@@ -8,6 +8,14 @@ type BP = 'desktop' | 'tablet' | 'mobile';
 
 const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart', 'woo-cart', 'woo-checkout', 'countdown', 'carousel', 'price-table', 'social', 'star-rating'];
 
+const PALETTE_CATS: { name: string; items: WidgetType[] }[] = [
+  { name: 'Content', items: ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box'] },
+  { name: 'Interactive', items: ['tabs', 'accordion', 'gallery', 'counter', 'testimonial', 'nav'] },
+  { name: 'Forms & Data', items: ['form', 'loop'] },
+  { name: 'Commerce', items: ['products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart', 'woo-cart', 'woo-checkout'] },
+  { name: 'Marketing', items: ['countdown', 'carousel', 'price-table', 'social', 'star-rating'] },
+];
+
 declare global {
   interface Window {
     wp?: any;
@@ -48,6 +56,7 @@ export default function App() {
   const [bp, setBp] = useState<BP>('desktop');
   const [dragPayload, setDragPayload] = useState<string | null>(null); // 'move:ID' | 'new:TYPE'
   const [overSlot, setOverSlot] = useState<string | null>(null); // 'parentId:index'
+  const [palSearch, setPalSearch] = useState('');
   const [templates, setTemplates] = useState<{ name: string; doc: any }[]>([]);
   const [patterns, setPatterns] = useState<{ id: string; name: string; node: MelNode }[]>([]);
   const [pname, setPname] = useState('');
@@ -401,11 +410,30 @@ export default function App() {
         <p className="mel-status">{status} · css {Math.round(ms * 100) / 100}ms · {bp}</p>
         <h4>Add</h4>
         <p className="mel-status">click to append, or drag onto the canvas.</p>
-        <div className="mel-grid">
-          {PALETTE.map((w) => (
-            <button key={w} draggable onDragStart={startPaletteDrag(w)} onDragEnd={endDrag} onClick={() => addWidget(w)}>{w}</button>
-          ))}
-        </div>
+        <input
+          placeholder="Search widgets…"
+          value={palSearch}
+          onChange={(e) => setPalSearch(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', marginBottom: 8 }}
+        />
+        {palSearch ? (
+          <div className="mel-grid">
+            {PALETTE.filter((w) => w.includes(palSearch.toLowerCase())).map((w) => (
+              <button key={w} draggable onDragStart={startPaletteDrag(w)} onDragEnd={endDrag} onClick={() => addWidget(w)}>{w}</button>
+            ))}
+          </div>
+        ) : (
+          PALETTE_CATS.map((c) => (
+            <details key={c.name} open={c.name === 'Content'}>
+              <summary>{c.name}</summary>
+              <div className="mel-grid">
+                {c.items.map((w) => (
+                  <button key={w} draggable onDragStart={startPaletteDrag(w)} onDragEnd={endDrag} onClick={() => addWidget(w)}>{w}</button>
+                ))}
+              </div>
+            </details>
+          ))
+        )}
         <GlobalsPanel colors={doc.globals?.colors || {}} fonts={doc.globals?.fonts || {}} onChange={setGlobals} onNotice={setStatus} />
         <h4>Templates</h4>
         <div className="mel-row">
@@ -500,7 +528,7 @@ export default function App() {
           {(doc.root.elements || []).map((n, i) => (
             <Fragment key={n.id}>
               <DropSlot parentId={doc.root.id} index={i} dnd={dnd} />
-              <PreviewNode node={n} selected={n.id === selectedId} onSelect={setSelected} dnd={dnd} />
+              <PreviewNode node={n} selected={n.id === selectedId} selectedId={selectedId} onSelect={setSelected} onInlineEdit={(id, field, value) => updateNode(id, { settings: { [field]: value } })} dnd={dnd} />
             </Fragment>
           ))}
           <DropSlot parentId={doc.root.id} index={(doc.root.elements || []).length} dnd={dnd} />
