@@ -2,7 +2,7 @@
   "name": "melintir-core",
   "type": "module",
   "description": "Melintir WASM brain: document model, CSS gen, validation",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "files": [
     "melintir-core_bg.wasm",
     "melintir-core.js",

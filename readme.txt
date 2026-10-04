@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,16 +17,19 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.1.0:
+What you get in 0.2.0:
 
-* 10 content widgets: Container, Heading, Text, Image, Button, Video,
-  Divider, Spacer, Icon Box, Tabs — plus a Form widget (lite) with entries
-  stored in WordPress and emailed to the admin.
+* 19 content widgets: Container, Heading, Text, Image, Button, Video,
+  Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
+  Counter, Testimonial — plus per-node custom CSS.
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
-* Undo/redo, autosave-ready REST API, starter templates, JSON import/export.
-* Elementor migrator: convert `_elementor_data` to Melintir via
-  `wp melintir migrate <post-id> [--dry-run]` or the REST endpoint.
-* Visitor frontend is plain HTML + one cached CSS file + ~1KB of JS.
+* Undo/redo, autosave with 5-revision history and undo-safe restore.
+* Starter templates, JSON import/export, Elementor migrator (WP-CLI + REST).
+* Theme Builder slices 1–2: Canvas template, block-theme header/footer
+  swap, display conditions, shortcodes, popup builder (lite).
+* Form upgrades: per-form recipients, Turnstile, spam-check filter,
+  CSV entry export.
+* Visitor frontend is plain HTML + cached CSS + ~1KB of JS.
   No WASM, no jQuery, no editor runtime on the public site.
 
 == Installation ==
@@ -55,7 +58,8 @@ effects, custom CSS and column % widths are reported, not silently dropped).
 
 = Where do form entries go? =
 Melintir > Entries in wp-admin, plus an email to the site admin.
-Spam defense in 0.1.0 is nonce + honeypot.
+Spam defense is nonce + honeypot, with optional Cloudflare Turnstile
+and a `melintir_form_spam_check` filter for custom rules.
 
 = Will updating/deleting the plugin destroy my pages? =
 No. Page data lives in `_melintir_data` postmeta and is kept on
@@ -65,10 +69,21 @@ uninstall; only generated CSS cache files are removed.
 
 1. Editor with panel, canvas preview and breakpoint switcher.
 2. Per-widget inspector controls.
-3. Starter templates, JSON import/export.
+3. Starter templates, history, JSON import/export.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.2.0 =
+* 8 new widgets: Loop (live wp/v2 preview), Accordion, Gallery,
+  Counter, Testimonial; per-node custom CSS (scoped, sanitized).
+* Autosave with 5-revision history and undo-safe restore.
+* Theme Builder slices 1–2: template CPT, Canvas template, block-theme
+  header/footer swap, display conditions, shortcodes/template tags,
+  popup builder lite (load/click triggers, session frequency).
+* Form upgrades: per-form recipients, Cloudflare Turnstile,
+  `melintir_form_spam_check` filter, CSV entry export, Settings screen.
+* Editor bundle hardened as IIFE (no more `window.wp` collisions).
 
 = 0.1.0 =
 * Initial release: 10 content widgets + lite form widget.

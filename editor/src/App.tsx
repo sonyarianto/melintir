@@ -218,7 +218,7 @@ export default function App() {
     <div className="mel-app">
       <style>{css}</style>
       <aside className="mel-panel">
-        <h3>Melintir v0.1 {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
+        <h3>Melintir v0.2 {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
         <div className="mel-row">
           <button onClick={undo}>↩</button>
           <button onClick={redo}>↪</button>
