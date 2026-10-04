@@ -3,7 +3,7 @@
  * Plugin Name: Melintir
  * Plugin URI: https://github.com/melintir/melintir
  * Description: Open-source page builder with Rust/WASM brain. Container-only, fast frontend (<30KB JS).
- * Version: 0.4.0
+ * Version: 0.5.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Melintir
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MELINTIR_VERSION', '0.4.0' );
+define( 'MELINTIR_VERSION', '0.5.0' );
 define( 'MELINTIR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'MELINTIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'MELINTIR_META_DATA', '_melintir_data' );

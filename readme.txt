@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,11 +17,12 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.4.0:
+What you get in 0.5.0:
 
-* 16 content widgets + Container layout: Heading, Text, Image, Button,
+* 17 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
-  Counter, Testimonial, Nav — plus per-node custom CSS.
+  Counter, Testimonial, Nav, Products — plus per-node custom CSS.
+* Block copy-paste across pages (OS clipboard, Ctrl+C / Ctrl+V).
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
 * Undo/redo, autosave with 5-revision history and undo-safe restore.
 * Starter templates, JSON import/export, Elementor migrator (WP-CLI + REST).
@@ -34,6 +35,8 @@ What you get in 0.4.0:
 * Saved patterns: store any block as a reusable pattern, re-insert
   anywhere as a copy (Global widgets slice 1).
 * Role manager: restrict builder access by role in Melintir → Settings.
+* Woo lite slice 1: Products grid with live Store-API preview, sale
+  badges, ratings, prices and add-to-cart (needs WooCommerce).
 * Visitor frontend is plain HTML + cached CSS + ~1KB of JS.
   No WASM, no jQuery, no editor runtime on the public site.
 
@@ -78,6 +81,13 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.5.0 =
+* Block copy-paste across pages via OS clipboard (buttons + Ctrl+C/V,
+  undo-safe fresh-ID copies, works with full-doc JSON too).
+* Products widget (Woo lite slice 1): order by newest/price/rating/
+  popularity/title, category picker, sale badges, ratings, prices,
+  purchasable-aware add-to-cart, live Store-API preview in the canvas.
 
 = 0.4.0 =
 * Saved patterns (Global widgets slice 1): save any block as a reusable
