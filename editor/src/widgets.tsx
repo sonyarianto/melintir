@@ -112,6 +112,44 @@ export function PreviewNode({ node, selected, onSelect, dnd }: { node: MelNode; 
     case 'menu-cart': return wrap(<span className="mel-menucart"><span className="mel-cart-icon">🛒</span>{s.showCount !== false && <span className="mel-cart-count">0</span>}{!!s.showTotal && <span className="mel-cart-total">$0.00</span>}</span>);
     case 'woo-cart': return wrap(<div className="mel-wooembed">🛒 Cart shows here (WooCommerce)</div>);
     case 'woo-checkout': return wrap(<div className="mel-wooembed">💳 Checkout shows here (WooCommerce)</div>);
+    case 'countdown': return wrap(
+      <div className="mel-countdown">
+        {[['7', 'days'], ['00', 'hrs'], ['00', 'min'], ['00', 'sec']].map(([n, l]) => (
+          <span key={l}><b>{n}</b><small>{l}</small></span>
+        ))}
+      </div>
+    );
+    case 'carousel': return wrap(
+      <div className="mel-carousel"><div className="mel-track">
+        {(s.slides || []).map((sl: any, i: number) => (
+          <div key={i} className="mel-slide">
+            {sl.url ? <img src={sl.url} alt={sl.alt || ''} loading="lazy" /> : 'No image'}
+            {(sl.heading || sl.text) && <div className="mel-slide-cap">{sl.heading && <strong>{sl.heading}</strong>}{sl.text && <span>{sl.text}</span>}</div>}
+          </div>
+        ))}
+      </div></div>
+    );
+    case 'price-table': return wrap(
+      <div className={`mel-price-table${s.highlight ? ' mel-hot' : ''}`}>
+        {s.title && <h3>{s.title}</h3>}
+        <div className="mel-pt-price">{s.currency}{s.price}<small>{s.period}</small></div>
+        <ul className="mel-pt-features">{(Array.isArray(s.features) ? s.features : []).map((f: string, i: number) => <li key={i}>{f}</li>)}</ul>
+        {s.buttonText && <span className="mel-addcart">{s.buttonText}</span>}
+      </div>
+    );
+    case 'social': return wrap(
+      <div className="mel-social">
+        {(s.items || []).map((it: any, i: number) => (
+          <span key={i} className="mel-social" title={it.network}>{socialGlyph(it.network)}</span>
+        ))}
+      </div>
+    );
+    case 'star-rating': {
+      const pct = Math.max(0, Math.min(5, +s.rating || 0)) / 5 * 100;
+      return wrap(
+        <div className="mel-stars-static"><span className="mel-stars-bg">★★★★★</span><span className="mel-stars-fg" style={{ width: `${pct}%` }}>★★★★★</span></div>
+      );
+    }
     default: return wrap(<div>?</div>);
   }
 }
@@ -213,6 +251,18 @@ function ProductsPreview({ settings }: { settings: Record<string, any> }) {
       ))}
     </div>
   );
+}
+
+/** Text glyphs for the social preview (frontend renders real SVGs). */
+function socialGlyph(network: string): string {
+  switch (network) {
+    case 'x': return '𝕏';
+    case 'instagram': return '◉';
+    case 'youtube': return '▶';
+    case 'facebook': return 'f';
+    case 'linkedin': return 'in';
+    default: return '●';
+  }
 }
 
 function stripTags(html: string): string {

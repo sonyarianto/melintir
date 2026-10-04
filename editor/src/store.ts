@@ -86,6 +86,28 @@ function defaults(type: WidgetType): Partial<MelNode> {
     case 'menu-cart': return { settings: { showCount: true, showTotal: false }, style: {} };
     case 'woo-cart':
     case 'woo-checkout': return { settings: {}, style: {} };
+    case 'countdown': return {
+      settings: { target: new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 16) },
+      style: {},
+    };
+    case 'carousel': return {
+      settings: {
+        slides: [
+          { url: 'https://picsum.photos/seed/s1/900/450', alt: '', heading: 'Slide one', text: 'First story', link: '' },
+          { url: 'https://picsum.photos/seed/s2/900/450', alt: '', heading: 'Slide two', text: 'Second story', link: '' },
+        ],
+      },
+      style: {},
+    };
+    case 'price-table': return {
+      settings: { title: 'Pro', price: '29', currency: '$', period: '/mo', features: ['Feature one', 'Feature two', 'Feature three'], buttonText: 'Choose', buttonUrl: '#', highlight: true },
+      style: {},
+    };
+    case 'social': return {
+      settings: { items: [{ network: 'x', url: 'https://x.com/' }, { network: 'instagram', url: 'https://instagram.com/' }] },
+      style: {},
+    };
+    case 'star-rating': return { settings: { rating: 4.5 }, style: {} };
   }
 }
 

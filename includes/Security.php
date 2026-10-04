@@ -17,7 +17,8 @@ class Security {
 		'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products',
 		'product-title', 'product-price', 'product-cart',
 		'product-rating', 'product-image', 'product-excerpt', 'menu-cart',
-		'woo-cart', 'woo-checkout',
+		'woo-cart', 'woo-checkout', 'countdown', 'carousel', 'price-table',
+		'social', 'star-rating',
 	);
 
 	const MAX_NODES = 1000;
@@ -341,6 +342,72 @@ class Security {
 		case 'woo-cart':
 		case 'woo-checkout':
 			// No settings: fixed shortcode embeds, nothing to sanitize.
+			break;
+		case 'countdown':
+			$target = isset( $settings['target'] ) ? (string) $settings['target'] : '';
+			$ts = $target ? strtotime( $target ) : false;
+			$out['target'] = $ts ? gmdate( 'Y-m-d\TH:i', $ts ) : '';
+			break;
+		case 'carousel':
+			$slides = isset( $settings['slides'] ) && is_array( $settings['slides'] ) ? array_slice( $settings['slides'], 0, 10 ) : array();
+			$clean_slides = array();
+			foreach ( $slides as $sl ) {
+				if ( ! is_array( $sl ) ) {
+					continue;
+				}
+				$url = isset( $sl['url'] ) ? esc_url_raw( (string) $sl['url'] ) : '';
+				if ( '' === $url ) {
+					continue;
+				}
+				$clean_slides[] = array(
+					'url'     => $url,
+					'alt'     => isset( $sl['alt'] ) ? sanitize_text_field( (string) $sl['alt'] ) : '',
+					'heading' => isset( $sl['heading'] ) ? sanitize_text_field( (string) $sl['heading'] ) : '',
+					'text'    => isset( $sl['text'] ) ? sanitize_text_field( (string) $sl['text'] ) : '',
+					'link'    => isset( $sl['link'] ) ? esc_url_raw( (string) $sl['link'] ) : '',
+				);
+			}
+			$out['slides'] = $clean_slides;
+			break;
+		case 'price-table':
+			$features = array();
+			if ( isset( $settings['features'] ) ) {
+				$raw = is_array( $settings['features'] ) ? $settings['features'] : explode( "\n", (string) $settings['features'] );
+				foreach ( array_slice( $raw, 0, 12 ) as $f ) {
+					$f = sanitize_text_field( (string) $f );
+					if ( '' !== $f ) {
+						$features[] = $f;
+					}
+				}
+			}
+			$out['title']      = isset( $settings['title'] ) ? sanitize_text_field( (string) $settings['title'] ) : '';
+			$out['price']      = isset( $settings['price'] ) ? sanitize_text_field( (string) $settings['price'] ) : '';
+			$out['currency']   = isset( $settings['currency'] ) ? substr( sanitize_text_field( (string) $settings['currency'] ), 0, 3 ) : '';
+			$out['period']     = isset( $settings['period'] ) ? substr( sanitize_text_field( (string) $settings['period'] ), 0, 12 ) : '';
+			$out['features']   = $features;
+			$out['buttonText'] = isset( $settings['buttonText'] ) ? sanitize_text_field( (string) $settings['buttonText'] ) : '';
+			$out['buttonUrl']  = isset( $settings['buttonUrl'] ) ? esc_url_raw( (string) $settings['buttonUrl'] ) : '';
+			$out['highlight']  = ! empty( $settings['highlight'] );
+			break;
+		case 'social':
+			$networks = array( 'facebook', 'x', 'instagram', 'youtube', 'linkedin' );
+			$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 8 ) : array();
+			$clean_items = array();
+			foreach ( $items as $it ) {
+				if ( ! is_array( $it ) ) {
+					continue;
+				}
+				$net = isset( $it['network'] ) ? sanitize_key( (string) $it['network'] ) : '';
+				$url = isset( $it['url'] ) ? esc_url_raw( (string) $it['url'] ) : '';
+				if ( ! in_array( $net, $networks, true ) || '' === $url ) {
+					continue;
+				}
+				$clean_items[] = array( 'network' => $net, 'url' => $url );
+			}
+			$out['items'] = $clean_items;
+			break;
+		case 'star-rating':
+			$out['rating'] = max( 0, min( 5, isset( $settings['rating'] ) ? round( floatval( $settings['rating'] ) * 2 ) / 2 : 5 ) );
 			break;
 			case 'accordion':
 				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();

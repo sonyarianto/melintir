@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart', 'woo-cart', 'woo-checkout'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart', 'woo-cart', 'woo-checkout', 'countdown', 'carousel', 'price-table', 'social', 'star-rating'];
 
 declare global {
   interface Window {
@@ -740,6 +740,107 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
 
       {(node.widgetType === 'woo-cart' || node.widgetType === 'woo-checkout') && (
         <p className="mel-status">embeds Woo's own {node.widgetType === 'woo-cart' ? 'cart' : 'checkout'} here — full functionality, Woo styles.</p>
+      )}
+
+      {node.widgetType === 'countdown' && (
+        <Field label="Target date & time"><input type="datetime-local" value={s.target || ''} onChange={(e) => onSetting({ target: e.target.value })} /></Field>
+      )}
+
+      {node.widgetType === 'carousel' && (
+        <>
+          {(s.slides || []).map((sl: any, i: number) => (
+            <div key={i} className="mel-tabedit">
+              <Field label={`Slide ${i + 1} image URL`}>
+                <input value={sl.url || ''} onChange={(e) => {
+                  const slides = [...(s.slides || [])];
+                  slides[i] = { ...slides[i], url: e.target.value };
+                  onSetting({ slides });
+                }} />
+              </Field>
+              <div className="mel-row">
+                <button onClick={() => pickImage((url) => {
+                  const slides = [...(s.slides || [])];
+                  slides[i] = { ...slides[i], url };
+                  onSetting({ slides });
+                })}>📚 Pick</button>
+                <button onClick={() => onSetting({ slides: (s.slides || []).filter((_: any, j: number) => j !== i) })}>remove</button>
+              </div>
+              <Field label="Heading">
+                <input value={sl.heading || ''} onChange={(e) => {
+                  const slides = [...(s.slides || [])];
+                  slides[i] = { ...slides[i], heading: e.target.value };
+                  onSetting({ slides });
+                }} />
+              </Field>
+              <Field label="Caption">
+                <input value={sl.text || ''} onChange={(e) => {
+                  const slides = [...(s.slides || [])];
+                  slides[i] = { ...slides[i], text: e.target.value };
+                  onSetting({ slides });
+                }} />
+              </Field>
+              <Field label="Link URL">
+                <input value={sl.link || ''} onChange={(e) => {
+                  const slides = [...(s.slides || [])];
+                  slides[i] = { ...slides[i], link: e.target.value };
+                  onSetting({ slides });
+                }} />
+              </Field>
+            </div>
+          ))}
+          <button onClick={() => onSetting({ slides: [...(s.slides || []), { url: '', alt: '', heading: '', text: '', link: '' }] })}>+ add slide</button>
+          <p className="mel-status">swipe / scroll-snap, no JS needed.</p>
+        </>
+      )}
+
+      {node.widgetType === 'price-table' && (
+        <>
+          <Field label="Title"><input value={s.title || ''} onChange={(e) => onSetting({ title: e.target.value })} /></Field>
+          <div className="mel-row">
+            <Field label="Currency"><input value={s.currency || ''} onChange={(e) => onSetting({ currency: e.target.value })} /></Field>
+            <Field label="Price"><input value={s.price || ''} onChange={(e) => onSetting({ price: e.target.value })} /></Field>
+            <Field label="Period"><input value={s.period || ''} onChange={(e) => onSetting({ period: e.target.value })} /></Field>
+          </div>
+          <Field label="Features (one per line)">
+            <textarea rows={4} value={(Array.isArray(s.features) ? s.features : []).join('\n')} onChange={(e) => onSetting({ features: e.target.value.split('\n') })} />
+          </Field>
+          <Field label="Button text"><input value={s.buttonText || ''} onChange={(e) => onSetting({ buttonText: e.target.value })} /></Field>
+          <Field label="Button URL"><input value={s.buttonUrl || ''} onChange={(e) => onSetting({ buttonUrl: e.target.value })} /></Field>
+          <div className="mel-row">
+            <label><input type="checkbox" checked={!!s.highlight} onChange={(e) => onSetting({ highlight: e.target.checked })} /> highlighted</label>
+          </div>
+        </>
+      )}
+
+      {node.widgetType === 'social' && (
+        <>
+          {(s.items || []).map((it: any, i: number) => (
+            <div key={i} className="mel-tabedit">
+              <Field label="Network">
+                <select value={it.network || 'x'} onChange={(e) => {
+                  const items = [...(s.items || [])];
+                  items[i] = { ...items[i], network: e.target.value };
+                  onSetting({ items });
+                }}>
+                  {['facebook', 'x', 'instagram', 'youtube', 'linkedin'].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </Field>
+              <Field label="URL">
+                <input value={it.url || ''} onChange={(e) => {
+                  const items = [...(s.items || [])];
+                  items[i] = { ...items[i], url: e.target.value };
+                  onSetting({ items });
+                }} />
+              </Field>
+              <button onClick={() => onSetting({ items: (s.items || []).filter((_: any, j: number) => j !== i) })}>remove</button>
+            </div>
+          ))}
+          <button onClick={() => onSetting({ items: [...(s.items || []), { network: 'x', url: '' }] })}>+ add link</button>
+        </>
+      )}
+
+      {node.widgetType === 'star-rating' && (
+        <Field label="Rating (0–5)"><Num value={s.rating ?? 5} onChange={(v) => onSetting({ rating: Math.max(0, Math.min(5, Math.round((v || 0) * 2) / 2)) })} /></Field>
       )}
 
       {node.widgetType === 'accordion' && (

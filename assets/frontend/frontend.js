@@ -1,6 +1,6 @@
 /**
- * Melintir frontend (<30KB budget, currently ~3.5KB).
- * Only interactive widgets need JS: tabs, popups, counters.
+ * Melintir frontend (<30KB budget, currently ~4.5KB).
+ * Only interactive widgets need JS: tabs, popups, counters, countdowns.
  * Everything else is HTML+CSS.
  */
 (function () {
@@ -72,6 +72,25 @@
     } else {
       window.setTimeout(open, delay);
     }
+  });
+
+  // Countdowns: <div data-countdown="UNIXTS"> with [data-d/h/m/s] cells.
+  // Server paints the first values; this ticks every second until zero.
+  document.querySelectorAll('[data-countdown]').forEach(function (root) {
+    var target = parseInt(root.getAttribute('data-countdown'), 10) || 0;
+    var d = root.querySelector('[data-d]');
+    var h = root.querySelector('[data-h]');
+    var m = root.querySelector('[data-m]');
+    var s = root.querySelector('[data-s]');
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    (function tick() {
+      var diff = Math.max(0, target - Math.floor(Date.now() / 1000));
+      if (d) d.textContent = Math.floor(diff / 86400);
+      if (h) h.textContent = pad(Math.floor(diff % 86400 / 3600));
+      if (m) m.textContent = pad(Math.floor(diff % 3600 / 60));
+      if (s) s.textContent = pad(diff % 60);
+      if (diff > 0) window.setTimeout(tick, 1000);
+    })();
   });
 
   // Animated counters: <span data-count="1234"> in .mel-counter.

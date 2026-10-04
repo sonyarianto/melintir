@@ -187,6 +187,16 @@ class Renderer {
 			return self::render_woo_shortcode( $cls, 'cart' );
 		case 'woo-checkout':
 			return self::render_woo_shortcode( $cls, 'checkout' );
+		case 'countdown':
+			return self::render_countdown( $cls, $sett );
+		case 'carousel':
+			return self::render_carousel( $cls, $sett );
+		case 'price-table':
+			return self::render_price_table( $cls, $sett );
+		case 'social':
+			return self::render_social( $cls, $sett );
+		case 'star-rating':
+			return self::render_star_rating( $cls, $sett );
 			case 'accordion':
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
@@ -318,6 +328,7 @@ class Renderer {
 		$css .= ".mel-badge{display:inline-block;background:#dc2626;color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin:8px 12px 0}.mel-price{font-size:16px;font-weight:700;margin:4px 12px}.mel-price del{color:#94a3b8;font-weight:400;margin-right:6px}.mel-price ins{text-decoration:none;background:none}.mel-stars{margin:0 12px;font-size:14px;color:#f59e0b;letter-spacing:2px}.mel-addcart{display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;text-decoration:none;margin:8px 12px 12px}\n";
 		$css .= ".mel-ptitle{font-size:32px;margin:0 0 8px}.mel-pexcerpt{color:#475569;margin:8px 0}.mel-pimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-pthumbs{display:flex;gap:8px;margin-top:8px}.mel-pthumbs img{width:72px;height:auto;border-radius:6px}\n";
 		$css .= ".mel-menucart{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit;font-weight:600}.mel-cart-icon{font-size:20px}.mel-cart-count{display:inline-block;min-width:20px;text-align:center;background:#2563eb;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 6px}.mel-cart-total{font-size:14px;color:#475569}\n";
+		$css .= ".mel-countdown{display:flex;gap:12px}.mel-countdown span{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;text-align:center;min-width:72px}.mel-countdown b{display:block;font-size:28px}.mel-countdown small{color:#64748b}.mel-carousel{overflow:hidden}.mel-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}.mel-slide{position:relative;flex:0 0 100%;scroll-snap-align:center}.mel-slide img{width:100%;height:auto;display:block;border-radius:8px}.mel-slide-cap{position:absolute;left:12px;bottom:12px;background:rgba(15,23,42,.65);color:#fff;padding:8px 12px;border-radius:8px;display:flex;flex-direction:column}.mel-price-table{border:1px solid #e2e8f0;border-radius:12px;padding:24px;text-align:center;background:#fff;max-width:340px}.mel-price-table.mel-hot{border-color:#2563eb;box-shadow:0 8px 24px rgba(37,99,235,.15)}.mel-pt-price{font-size:40px;font-weight:800}.mel-pt-price small{font-size:14px;font-weight:400;color:#64748b}.mel-pt-features{list-style:none;margin:16px 0;padding:0;display:flex;flex-direction:column;gap:8px}.mel-social{display:flex;gap:8px}.mel-social a{display:inline-flex;width:36px;height:36px;border-radius:50%;background:#f1f5f9;color:#0f172a;align-items:center;justify-content:center}.mel-social svg{width:18px;height:18px}.mel-stars-static{position:relative;display:inline-block;font-size:24px;line-height:1;letter-spacing:2px}.mel-stars-bg{color:#cbd5e1}.mel-stars-fg{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:#f59e0b}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
 		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
 		$css .= ".mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-list a{text-decoration:none;color:inherit}.mel-nav-sub{list-style:none;margin:4px 0 0 12px;padding:0}.mel-nav-check{display:none}.mel-nav-burger{display:none;cursor:pointer;font-size:24px}@media(max-width:767px){.mel-has-toggle .mel-nav-burger{display:block}.mel-has-toggle .mel-nav-list{display:none;flex-direction:column}.mel-has-toggle .mel-nav-check:checked+.mel-nav-burger+.mel-nav-list{display:flex}}\n";
@@ -744,6 +755,148 @@ class Renderer {
 		}
 		$tag = 'checkout' === $page ? '[woocommerce_checkout]' : '[woocommerce_cart]';
 		return '<div class="' . esc_attr( $cls ) . '">' . do_shortcode( $tag ) . '</div>';
+	}
+
+	/**
+	 * Countdown: server paints the initial values (SEO + first paint), the
+	 * ~20-line ticker in frontend.js takes over every second. Times are site
+	 * timezone on both ends (WP sets the PHP default; the browser gets a
+	 * plain UNIX timestamp, so no offset math is needed).
+	 */
+	private static function render_countdown( $cls, $sett ) {
+		$target = isset( $sett['target'] ) ? strtotime( (string) $sett['target'] ) : false;
+		if ( ! $target ) {
+			return '<p class="mel-loop-empty ' . esc_attr( $cls ) . '">' . esc_html__( 'Pick a target date.', 'melintir' ) . '</p>';
+		}
+		$diff = max( 0, $target - current_time( 'timestamp' ) );
+		$d = floor( $diff / 86400 );
+		$h = str_pad( (string) floor( ( $diff % 86400 ) / 3600 ), 2, '0', STR_PAD_LEFT );
+		$m = str_pad( (string) floor( ( $diff % 3600 ) / 60 ), 2, '0', STR_PAD_LEFT );
+		$s = str_pad( (string) ( $diff % 60 ), 2, '0', STR_PAD_LEFT );
+		$unit = function ( $n, $one, $many ) {
+			// translators: %d = number of time units.
+			return sprintf( 1 == $n ? __( $one, 'melintir' ) : __( $many, 'melintir' ), $n );
+		};
+		$out = '<div class="mel-countdown ' . esc_attr( $cls ) . '" data-countdown="' . esc_attr( (string) $target ) . '">';
+		$out .= '<span><b data-d>' . esc_html( (string) $d ) . '</b><small>' . esc_html( $unit( $d, '%d day', '%d days' ) ) . '</small></span>';
+		$out .= '<span><b data-h>' . $h . '</b><small>' . esc_html__( 'hrs', 'melintir' ) . '</small></span>';
+		$out .= '<span><b data-m>' . $m . '</b><small>' . esc_html__( 'min', 'melintir' ) . '</small></span>';
+		$out .= '<span><b data-s>' . $s . '</b><small>' . esc_html__( 'sec', 'melintir' ) . '</small></span>';
+		return $out . '</div>';
+	}
+
+	/**
+	 * Carousel without a single line of JS: CSS scroll-snap gives swipe,
+	 * trackpad and scrollbar navigation natively on every device.
+	 */
+	private static function render_carousel( $cls, $sett ) {
+		$slides = isset( $sett['slides'] ) && is_array( $sett['slides'] ) ? $sett['slides'] : array();
+		if ( empty( $slides ) ) {
+			return '';
+		}
+		$out = '<div class="mel-carousel ' . esc_attr( $cls ) . '"><div class="mel-track">';
+		foreach ( $slides as $sl ) {
+			$url = isset( $sl['url'] ) ? esc_url( (string) $sl['url'] ) : '';
+			if ( '' === $url ) {
+				continue;
+			}
+			$alt     = isset( $sl['heading'] ) && '' !== $sl['heading'] ? $sl['heading'] : ( isset( $sl['alt'] ) ? $sl['alt'] : '' );
+			$img     = '<img src="' . $url . '" alt="' . esc_attr( (string) $alt ) . '" loading="lazy" />';
+			$caption = '';
+			if ( ! empty( $sl['heading'] ) || ! empty( $sl['text'] ) ) {
+				$caption = '<div class="mel-slide-cap">';
+				if ( ! empty( $sl['heading'] ) ) {
+					$caption .= '<strong>' . esc_html( (string) $sl['heading'] ) . '</strong>';
+				}
+				if ( ! empty( $sl['text'] ) ) {
+					$caption .= '<span>' . esc_html( (string) $sl['text'] ) . '</span>';
+				}
+				$caption .= '</div>';
+			}
+			$inner = $img . $caption;
+			if ( ! empty( $sl['link'] ) ) {
+				$inner = '<a href="' . esc_url( (string) $sl['link'] ) . '">' . $inner . '</a>';
+			}
+			$out .= '<div class="mel-slide">' . $inner . '</div>';
+		}
+		return $out . '</div></div>';
+	}
+
+	private static function render_price_table( $cls, $sett ) {
+		$title = isset( $sett['title'] ) ? esc_html( (string) $sett['title'] ) : '';
+		$price = isset( $sett['price'] ) ? esc_html( (string) $sett['price'] ) : '';
+		$cur   = isset( $sett['currency'] ) ? esc_html( (string) $sett['currency'] ) : '';
+		$per   = isset( $sett['period'] ) ? esc_html( (string) $sett['period'] ) : '';
+		$hot   = ! empty( $sett['highlight'] ) ? ' mel-hot' : '';
+		$out   = '<div class="mel-price-table' . $hot . ' ' . esc_attr( $cls ) . '">';
+		if ( '' !== $title ) {
+			$out .= '<h3>' . $title . '</h3>';
+		}
+		if ( '' !== $price ) {
+			$out .= '<div class="mel-pt-price">' . $cur . $price . '<small>' . $per . '</small></div>';
+		}
+		$features = isset( $sett['features'] ) && is_array( $sett['features'] ) ? $sett['features'] : array();
+		if ( ! empty( $features ) ) {
+			$out .= '<ul class="mel-pt-features">';
+			foreach ( $features as $f ) {
+				$out .= '<li>' . esc_html( (string) $f ) . '</li>';
+			}
+			$out .= '</ul>';
+		}
+		if ( ! empty( $sett['buttonText'] ) ) {
+			$url = isset( $sett['buttonUrl'] ) && '' !== $sett['buttonUrl'] ? esc_url( (string) $sett['buttonUrl'] ) : '#';
+			$out .= '<a class="mel-addcart" href="' . $url . '">' . esc_html( (string) $sett['buttonText'] ) . '</a>';
+		}
+		return $out . '</div>';
+	}
+
+	/**
+	 * Social icons as inline SVG (no icon font to load). Geometric glyphs
+	 * where strokes suffice, bold monograms for f/in — one consistent badge.
+	 */
+	private static function social_svg( $network ) {
+		$stroke = ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+		switch ( $network ) {
+			case 'x':
+				return '<svg viewBox="0 0 24 24"' . $stroke . '><path d="M5 5l14 14M19 5L5 19"/></svg>';
+			case 'instagram':
+				return '<svg viewBox="0 0 24 24"' . $stroke . '><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>';
+			case 'youtube':
+				return '<svg viewBox="0 0 24 24"' . $stroke . '><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M11 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/></svg>';
+			case 'facebook':
+				return '<svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="15" font-weight="bold" fill="currentColor" font-family="sans-serif">f</text></svg>';
+			default: // linkedin
+				return '<svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor" font-family="sans-serif">in</text></svg>';
+		}
+	}
+
+	private static function render_social( $cls, $sett ) {
+		$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
+		if ( empty( $items ) ) {
+			return '';
+		}
+		$out = '<div class="mel-social ' . esc_attr( $cls ) . '">';
+		foreach ( $items as $it ) {
+			$net = isset( $it['network'] ) ? (string) $it['network'] : '';
+			$url = isset( $it['url'] ) ? esc_url( (string) $it['url'] ) : '';
+			if ( '' === $net || '' === $url ) {
+				continue;
+			}
+			$out .= '<a href="' . $url . '" aria-label="' . esc_attr( $net ) . '" target="_blank" rel="noopener">' . self::social_svg( $net ) . '</a>';
+		}
+		return $out . '</div>';
+	}
+
+	/**
+	 * Static star rating with the classic two-layer technique: gray stars
+	 * behind, gold clipped to rating/5 — halves work with zero extra markup.
+	 */
+	private static function render_star_rating( $cls, $sett ) {
+		$rating = isset( $sett['rating'] ) ? max( 0, min( 5, floatval( $sett['rating'] ) ) ) : 5;
+		$width  = round( $rating / 5 * 100, 1 );
+		return '<div class="mel-stars-static ' . esc_attr( $cls ) . '" role="img" aria-label="' . esc_attr( sprintf( __( 'Rated %s out of 5', 'melintir' ), $rating ) ) . '">'
+			. '<span class="mel-stars-bg">★★★★★</span>'
+			. '<span class="mel-stars-fg" style="width:' . esc_attr( (string) $width ) . '%">★★★★★</span></div>';
 	}
 
 	/**
