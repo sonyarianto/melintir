@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { MelNode } from './types';
 
 export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selected: boolean; onSelect: (id: string) => void }) {
@@ -37,6 +38,59 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
         <span className="mel-btn">{s.buttonText || 'Send'}</span>
       </div>
     );
+    case 'loop': return wrap(<LoopPreview settings={s} />);
     default: return wrap(<div>?</div>);
   }
+}
+
+/** Live grid preview from real posts via wp/v2; placeholders when offline. */
+function LoopPreview({ settings }: { settings: Record<string, any> }) {
+  const [posts, setPosts] = useState<any[] | null>(null);
+  const postType = settings.postType || 'post';
+  const perPage = Math.max(1, Math.min(20, +settings.postsPerPage || 6));
+  const columns = Math.max(1, Math.min(4, +settings.columns || 3));
+
+  useEffect(() => {
+    setPosts(null);
+    const d: any = (window as any).MelintirData;
+    const base = typeof d?.restUrl === 'string' ? d.restUrl.split('/melintir/v1')[0] : null;
+    const endpoint = postType === 'page' ? '/wp/v2/pages' : '/wp/v2/posts';
+    if (!base) return;
+    // Plain permalinks use ?rest_route= (append with &), pretty use /wp-json (append with ?).
+    const query = `per_page=${perPage}&_fields=id,title,excerpt,featured_media,link`;
+    const url = base.includes('?') ? `${base}${endpoint}&${query}` : `${base}${endpoint}?${query}`;
+    let alive = true;
+    fetch(url, { headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {} })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => alive && setPosts(Array.isArray(j) ? j : []))
+      .catch(() => alive && setPosts([]));
+    return () => { alive = false; };
+  }, [postType, perPage]);
+
+  const items = posts === null
+    ? Array.from({ length: Math.min(perPage, 3) }, (_, i) => ({ id: `ph-${i}`, phantom: true }))
+    : posts;
+  return (
+    <div className={`mel-loop mel-cols-${columns}`}>
+      {items.length === 0 && <p className="mel-loop-empty">No posts found.</p>}
+      {items.map((p: any) => (
+        <article key={p.id} className="mel-card">
+          {settings.showImage !== false && !p.phantom && <div className="mel-card-img">🖼</div>}
+          {settings.showImage !== false && p.phantom && <div className="mel-card-img">…</div>}
+          {settings.showTitle !== false && (
+            <h3 className="mel-card-title">{p.phantom ? 'Post title' : stripTags(p.title?.rendered || '')}</h3>
+          )}
+          {settings.showExcerpt !== false && (
+            <div className="mel-card-ex">{p.phantom ? 'Excerpt…' : stripTags(p.excerpt?.rendered || '').slice(0, 80)}</div>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function stripTags(html: string): string {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || '';
 }

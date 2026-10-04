@@ -46,6 +46,10 @@ function defaults(type: WidgetType): Partial<MelNode> {
       },
       style: {},
     };
+    case 'loop': return {
+      settings: { postType: 'post', postsPerPage: 6, columns: 3, order: 'DESC', orderBy: 'date', showImage: true, showTitle: true, showExcerpt: true },
+      style: {},
+    };
   }
 }
 

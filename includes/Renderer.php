@@ -117,6 +117,8 @@ class Renderer {
 				return $out . '</div></div>';
 			case 'form':
 				return self::render_form( $id, $cls, $sett );
+			case 'loop':
+				return self::render_loop( $cls, $sett );
 			default:
 				return '';
 		}
@@ -192,6 +194,8 @@ class Renderer {
 			return '';
 		}
 		$css = ".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n";
+		$css .= ".mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n";
+		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
 		$css .= self::node_css( $doc['root'] );
 		// Cap to avoid runaway postmeta.
 		if ( strlen( $css ) > 100 * 1024 ) {
@@ -275,5 +279,46 @@ class Renderer {
 			}
 		}
 		return $d;
+	}
+
+	/**
+	 * Post grid. Query is capped and sanitized upstream; output escaped here.
+	 *
+	 * @param string $cls
+	 * @param array  $sett
+	 * @return string
+	 */
+	private static function render_loop( $cls, $sett ) {
+		$q = new \WP_Query(
+			array(
+				'post_type'      => isset( $sett['postType'] ) ? (string) $sett['postType'] : 'post',
+				'posts_per_page' => isset( $sett['postsPerPage'] ) ? intval( $sett['postsPerPage'] ) : 6,
+				'orderby'        => isset( $sett['orderBy'] ) ? (string) $sett['orderBy'] : 'date',
+				'order'          => isset( $sett['order'] ) ? (string) $sett['order'] : 'DESC',
+				'post_status'    => 'publish',
+				'no_found_rows'  => true,
+			)
+		);
+		$cols = isset( $sett['columns'] ) ? max( 1, min( 4, intval( $sett['columns'] ) ) ) : 3;
+		$out  = '<div class="mel-loop mel-cols-' . $cols . ' ' . esc_attr( $cls ) . '">';
+		if ( ! $q->have_posts() ) {
+			$out .= '<p class="mel-loop-empty">' . esc_html__( 'No posts found.', 'melintir' ) . '</p>';
+		}
+		while ( $q->have_posts() ) {
+			$q->the_post();
+			$out .= '<article class="mel-card">';
+			if ( ! empty( $sett['showImage'] ) && has_post_thumbnail() ) {
+				$out .= '<a class="mel-card-img" href="' . esc_url( get_permalink() ) . '">' . get_the_post_thumbnail( get_the_ID(), 'medium' ) . '</a>';
+			}
+			if ( ! empty( $sett['showTitle'] ) ) {
+				$out .= '<h3 class="mel-card-title"><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h3>';
+			}
+			if ( ! empty( $sett['showExcerpt'] ) ) {
+				$out .= '<div class="mel-card-ex">' . esc_html( wp_trim_words( get_the_excerpt(), 20 ) ) . '</div>';
+			}
+			$out .= '</article>';
+		}
+		wp_reset_postdata();
+		return $out . '</div>';
 	}
 }

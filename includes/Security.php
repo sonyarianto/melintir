@@ -13,7 +13,7 @@ class Security {
 
 	const ALLOWED_WIDGETS = array(
 		'heading', 'text', 'image', 'button',
-		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form',
+		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
 	);
 
 	const MAX_NODES = 1000;
@@ -229,6 +229,29 @@ class Security {
 				$out['fields']     = $clean_fields;
 				$out['buttonText'] = isset( $settings['buttonText'] ) ? sanitize_text_field( (string) $settings['buttonText'] ) : 'Send';
 				$out['successMsg'] = isset( $settings['successMsg'] ) ? sanitize_text_field( (string) $settings['successMsg'] ) : 'Thanks! We got your message.';
+				break;
+			case 'loop':
+				$type = isset( $settings['postType'] ) ? sanitize_key( (string) $settings['postType'] ) : 'post';
+				$pto  = get_post_type_object( $type );
+				if ( ! $pto || empty( $pto->public ) ) {
+					$type = 'post';
+				}
+				$order = isset( $settings['order'] ) ? strtoupper( (string) $settings['order'] ) : 'DESC';
+				if ( 'ASC' !== $order && 'DESC' !== $order ) {
+					$order = 'DESC';
+				}
+				$orderby = isset( $settings['orderBy'] ) ? sanitize_key( (string) $settings['orderBy'] ) : 'date';
+				if ( ! in_array( $orderby, array( 'date', 'title', 'rand' ), true ) ) {
+					$orderby = 'date';
+				}
+				$out['postType']     = $type;
+				$out['postsPerPage'] = max( 1, min( 20, isset( $settings['postsPerPage'] ) ? intval( $settings['postsPerPage'] ) : 6 ) );
+				$out['columns']      = max( 1, min( 4, isset( $settings['columns'] ) ? intval( $settings['columns'] ) : 3 ) );
+				$out['order']        = $order;
+				$out['orderBy']      = $orderby;
+				$out['showImage']    = ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] );
+				$out['showTitle']    = ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] );
+				$out['showExcerpt']  = ! isset( $settings['showExcerpt'] ) || ! empty( $settings['showExcerpt'] );
 				break;
 			default:
 				// divider, spacer: no user HTML.

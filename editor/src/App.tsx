@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop'];
 
 declare global {
   interface Window {
@@ -361,6 +361,30 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
 
       {node.widgetType === 'spacer' && (
         <Field label="Height ≈ padding (px)"><Num value={L.padding} onChange={(v) => onStyle({ layout: { padding: v } })} /></Field>
+      )}
+
+      {node.widgetType === 'loop' && (
+        <>
+          <Field label="Post type">
+            <select value={s.postType || 'post'} onChange={(e) => onSetting({ postType: e.target.value })}>
+              <option value="post">posts</option>
+              <option value="page">pages</option>
+            </select>
+          </Field>
+          <Field label="Count (1–20)"><Num value={s.postsPerPage ?? 6} onChange={(v) => onSetting({ postsPerPage: Math.max(1, Math.min(20, v || 1)) })} /></Field>
+          <Field label="Columns (1–4)"><Num value={s.columns ?? 3} onChange={(v) => onSetting({ columns: Math.max(1, Math.min(4, v || 1)) })} /></Field>
+          <Field label="Order">
+            <select value={s.order || 'DESC'} onChange={(e) => onSetting({ order: e.target.value })}>
+              <option value="DESC">newest first</option>
+              <option value="ASC">oldest first</option>
+            </select>
+          </Field>
+          <div className="mel-row">
+            {[['showImage', 'image'], ['showTitle', 'title'], ['showExcerpt', 'excerpt']].map(([k, label]) => (
+              <label key={k}><input type="checkbox" checked={s[k] !== false} onChange={(e) => onSetting({ [k]: e.target.checked })} /> {label}</label>
+            ))}
+          </div>
+        </>
       )}
 
       {node.widgetType === 'form' && (

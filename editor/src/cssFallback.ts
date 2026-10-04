@@ -6,6 +6,7 @@ import type { MelDoc } from './types';
  */
 export function generateCssFallback(doc: MelDoc): string {
   let out = '.mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n';
+  out += '.mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n';
   const walk = (n: any) => {
     const sel = `.mel-${String(n.id).replace(/[^a-zA-Z0-9_-]/g, '')}`;
     const decl = decls(n.style || {});

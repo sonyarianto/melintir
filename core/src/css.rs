@@ -3,7 +3,7 @@ use crate::document::{Document, Node, Style};
 /// Must stay in sync with includes/Renderer.php + editor/src/cssFallback.ts
 /// Selector: .mel-{id}
 pub fn generate_css(doc: &Document) -> String {
-    let mut out = String::from(".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n");
+    let mut out = String::from(".mel-page{box-sizing:border-box}.mel-container{display:flex;flex-direction:column}\n.mel-loop{display:grid;gap:16px}.mel-cols-1{grid-template-columns:1fr}.mel-cols-2{grid-template-columns:repeat(2,1fr)}.mel-cols-3{grid-template-columns:repeat(3,1fr)}.mel-cols-4{grid-template-columns:repeat(4,1fr)}@media(max-width:767px){.mel-loop{grid-template-columns:1fr}}\n.mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n");
     node_css(&doc.root, &mut out);
     if out.len() > 100 * 1024 {
         out.truncate(100 * 1024);
