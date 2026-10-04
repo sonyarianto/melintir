@@ -25,10 +25,12 @@ require_once MELINTIR_PATH . 'includes/Security.php';
 require_once MELINTIR_PATH . 'includes/Renderer.php';
 require_once MELINTIR_PATH . 'includes/Migrator.php';
 require_once MELINTIR_PATH . 'includes/Form.php';
+require_once MELINTIR_PATH . 'includes/Theme.php';
 require_once MELINTIR_PATH . 'includes/Rest.php';
 require_once MELINTIR_PATH . 'includes/Plugin.php';
 
 Melintir\Form::register();
+Melintir\Theme::register();
 
 register_activation_hook( __FILE__, array( 'Melintir\\Plugin', 'activate' ) );
 
