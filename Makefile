@@ -19,4 +19,6 @@ check:
 	php -l includes/Form.php
 	php -l includes/Theme.php
 	php -l includes/Migrator.php
+	php -l includes/Blocks.php
+	node --check assets/blocks/template.js
 	cargo test --manifest-path core/Cargo.toml

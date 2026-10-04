@@ -96,6 +96,15 @@ class Rest {
 				'permission_callback' => array( __CLASS__, 'can_edit' ),
 			)
 		);
+		register_rest_route(
+			'melintir/v1',
+			'/block-templates',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'block_templates' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
 	}
 
 	public static function can_edit( \WP_REST_Request $req ) {
@@ -239,6 +248,32 @@ class Rest {
 				'revisions' => $list,
 			)
 		);
+	}
+
+	/**
+	 * Templates available to the Gutenberg block picker: published and draft
+	 * theme templates with their locations. Editor users only.
+	 */
+	public static function block_templates() {
+		$posts = get_posts(
+			array(
+				'post_type'   => Theme::CPT,
+				'post_status' => array( 'publish', 'draft' ),
+				'numberposts' => 50,
+				'orderby'     => 'title',
+				'order'       => 'ASC',
+			)
+		);
+		$out = array();
+		foreach ( $posts as $p ) {
+			$out[] = array(
+				'id'       => $p->ID,
+				'title'    => $p->post_title ? $p->post_title : sprintf( __( 'Template #%d', 'melintir' ), $p->ID ),
+				'location' => (string) get_post_meta( $p->ID, Theme::LOC_META, true ),
+				'status'   => $p->post_status,
+			);
+		}
+		return rest_ensure_response( $out );
 	}
 
 	const PATTERNS_OPTION = 'melintir_patterns';

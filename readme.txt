@@ -4,7 +4,7 @@ Tags: page builder, elementor alternative, landing page, contact form, gutenberg
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,14 +17,16 @@ workflow but not its weight. The editor is a normal React app; the brain —
 document model, CSS generation, validation — is a small Rust core compiled
 to WebAssembly, so style calculations stay instant even on huge pages.
 
-What you get in 0.8.0:
+What you get in 0.9.0:
 
-* 26 content widgets + Container layout: Heading, Text, Image, Button,
+* 31 content widgets + Container layout: Heading, Text, Image, Button,
   Video, Divider, Spacer, Icon Box, Tabs, Form, Loop, Accordion, Gallery,
   Counter, Testimonial, Nav, Products, Product Title/Price/Cart/Rating/
-  Image/Excerpt, Menu Cart, Cart + Checkout embeds — plus per-node custom CSS.
+  Image/Excerpt, Menu Cart, Cart + Checkout embeds, Countdown, Carousel,
+  Price Table, Social, Star Rating — plus per-node custom CSS.
 * Single Product + Product Archive template takeover with display rules.
 * Drag-and-drop canvas editing with navigator outline.
+* Gutenberg block to embed templates inside block/FSE content.
 * Block copy-paste across pages (OS clipboard, Ctrl+C / Ctrl+V).
 * Responsive controls (desktop / tablet / mobile) with live canvas preview.
 * Undo/redo, autosave with 5-revision history and undo-safe restore.
@@ -86,6 +88,13 @@ uninstall; only generated CSS cache files are removed.
 4. Form entries list.
 
 == Changelog ==
+
+= 0.9.0 =
+* 5 new widgets: Countdown (server-painted + JS ticker), Carousel
+  (CSS scroll-snap, zero JS), Price Table, Social icons (inline SVG),
+  Star Rating — 31 widgets total.
+* Gutenberg block melintir/template: embed any theme template inside
+  block/FSE content with a template picker and server-side rendering.
 
 = 0.8.0 =
 * Drag-and-drop reorder + navigator (native HTML5 DnD, zero dependencies):
