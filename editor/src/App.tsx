@@ -975,6 +975,21 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
 
       <BoxFields layout={L} globals={globals} onStyle={(p) => onStyle(p)} />
 
+      <div className="mel-advanced">
+        <h4>Motion</h4>
+        <Field label="Entrance">
+          <select value={s.animation || ''} onChange={(e) => onSetting({ animation: e.target.value || undefined })}>
+            <option value="">none</option>
+            <option value="fade-up">fade up</option>
+            <option value="fade-in">fade in</option>
+            <option value="zoom-in">zoom in</option>
+            <option value="slide-left">slide from right</option>
+            <option value="slide-right">slide from left</option>
+          </select>
+        </Field>
+        <Field label="Delay (ms)"><Num value={s.animDelay} onChange={(v) => onSetting({ animDelay: Math.max(0, Math.min(2000, v || 0)) || undefined })} /></Field>
+      </div>
+
       <AdvancedCss node={node} bp={bp} onStyle={(p) => onStyle(p)} />
 
       {node.widgetType === 'form' && (

@@ -93,6 +93,33 @@
     })();
   });
 
+  // Scroll entrance: [data-anim] hides via .mel-anim only here (added at
+  // runtime, so no-JS visitors never lose content), then reveals on intersect
+  // with an optional data-delay. Honors reduced-motion via CSS.
+  (function () {
+    var els = document.querySelectorAll('[data-anim]');
+    if (!els.length) return;
+    var reveal = function (el) {
+      var delay = parseInt(el.getAttribute('data-delay') || '0', 10) || 0;
+      window.setTimeout(function () { el.classList.add('mel-in'); }, Math.max(0, Math.min(2000, delay)));
+    };
+    if (!('IntersectionObserver' in window)) {
+      els.forEach(function (el) { el.classList.add('mel-anim'); reveal(el); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        io.unobserve(entry.target);
+        reveal(entry.target);
+      });
+    });
+    els.forEach(function (el) {
+      el.classList.add('mel-anim');
+      io.observe(el);
+    });
+  })();
+
   // Animated counters: <span data-count="1234"> in .mel-counter.
   var counters = document.querySelectorAll('[data-count]');
   if (!counters.length || !('IntersectionObserver' in window)) {

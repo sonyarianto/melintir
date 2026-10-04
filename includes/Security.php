@@ -166,8 +166,21 @@ class Security {
 			}
 		}
 
-		$settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : array();
-		$settings = self::sanitize_settings( $widget_type, $settings );
+		$raw_settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : array();
+		$settings = self::sanitize_settings( $widget_type, $raw_settings );
+		// Generic motion keys (every node incl. containers): entrance animation.
+		if ( isset( $raw_settings['animation'] ) ) {
+			$anim = (string) $raw_settings['animation'];
+			if ( in_array( $anim, array( 'fade-up', 'fade-in', 'zoom-in', 'slide-left', 'slide-right' ), true ) ) {
+				$settings['animation'] = $anim;
+			}
+		}
+		if ( isset( $raw_settings['animDelay'] ) ) {
+			$delay = max( 0, min( 2000, intval( $raw_settings['animDelay'] ) ) );
+			if ( $delay > 0 ) {
+				$settings['animDelay'] = $delay;
+			}
+		}
 
 		$style = isset( $node['style'] ) && is_array( $node['style'] ) ? $node['style'] : array();
 		$style = self::sanitize_style( $style );
