@@ -181,6 +181,8 @@ class Renderer {
 			return self::render_product_image( $cls, $sett );
 		case 'product-excerpt':
 			return self::render_product_excerpt( $cls );
+		case 'menu-cart':
+			return self::render_menu_cart( $cls, $sett );
 			case 'accordion':
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
@@ -311,6 +313,7 @@ class Renderer {
 		$css .= ".mel-card{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff}.mel-card-img img{width:100%;height:auto;display:block}.mel-card-title{font-size:18px;margin:12px 12px 4px}.mel-card-ex{font-size:14px;color:#475569;margin:0 12px 12px}\n";
 		$css .= ".mel-badge{display:inline-block;background:#dc2626;color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin:8px 12px 0}.mel-price{font-size:16px;font-weight:700;margin:4px 12px}.mel-price del{color:#94a3b8;font-weight:400;margin-right:6px}.mel-price ins{text-decoration:none;background:none}.mel-stars{margin:0 12px;font-size:14px;color:#f59e0b;letter-spacing:2px}.mel-addcart{display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;text-decoration:none;margin:8px 12px 12px}\n";
 		$css .= ".mel-ptitle{font-size:32px;margin:0 0 8px}.mel-pexcerpt{color:#475569;margin:8px 0}.mel-pimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-pthumbs{display:flex;gap:8px;margin-top:8px}.mel-pthumbs img{width:72px;height:auto;border-radius:6px}\n";
+		$css .= ".mel-menucart{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit;font-weight:600}.mel-cart-icon{font-size:20px}.mel-cart-count{display:inline-block;min-width:20px;text-align:center;background:#2563eb;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 6px}.mel-cart-total{font-size:14px;color:#475569}\n";
 		$css .= ".mel-gallery{display:grid;gap:12px}.mel-gcols-1{grid-template-columns:1fr}.mel-gcols-2{grid-template-columns:repeat(2,1fr)}.mel-gcols-3{grid-template-columns:repeat(3,1fr)}.mel-gcols-4{grid-template-columns:repeat(4,1fr)}.mel-gcols-5{grid-template-columns:repeat(5,1fr)}.mel-gcols-6{grid-template-columns:repeat(6,1fr)}@media(max-width:767px){.mel-gallery{grid-template-columns:repeat(2,1fr)}}\n";
 		$css .= ".mel-gimg img{width:100%;height:auto;display:block;border-radius:8px}.mel-acc-item{border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}.mel-acc-item summary{cursor:pointer;padding:12px 16px;font-weight:600}.mel-acc-item summary+div{padding:0 16px 12px}.mel-counter{font-size:40px;font-weight:800}.mel-testimonial{border-left:4px solid #2563eb;padding:8px 16px;margin:0}.mel-testimonial blockquote{margin:0 0 8px;font-style:italic}.mel-tavatar{width:40px;height:40px;border-radius:50%;vertical-align:middle;margin-right:8px}.mel-tname{font-weight:700}.mel-trole{color:#64748b;margin-left:8px}\n";
 		$css .= ".mel-nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}.mel-nav-vertical .mel-nav-list{flex-direction:column}.mel-nav-list a{text-decoration:none;color:inherit}.mel-nav-sub{list-style:none;margin:4px 0 0 12px;padding:0}.mel-nav-check{display:none}.mel-nav-burger{display:none;cursor:pointer;font-size:24px}@media(max-width:767px){.mel-has-toggle .mel-nav-burger{display:block}.mel-has-toggle .mel-nav-list{display:none;flex-direction:column}.mel-has-toggle .mel-nav-check:checked+.mel-nav-burger+.mel-nav-list{display:flex}}\n";
@@ -686,6 +689,29 @@ class Renderer {
 			return '';
 		}
 		return '<div class="mel-pexcerpt ' . esc_attr( $cls ) . '">' . wp_kses_post( $excerpt ) . '</div>';
+	}
+
+	/**
+	 * Header cart link (Woo lite). Shows item count + total when WooCommerce
+	 * is active with a cart in this request; otherwise a plain cart link.
+	 * Live fragment refresh (count without reload) needs Woo's own
+	 * cart-fragments script, which Woo enqueues on shop pages itself.
+	 *
+	 * @param string $cls
+	 * @param array  $sett
+	 * @return string
+	 */
+	private static function render_menu_cart( $cls, $sett ) {
+		$url = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '#';
+		$out = '<a class="mel-menucart ' . esc_attr( $cls ) . '" href="' . esc_url( $url ) . '">';
+		$out .= '<span class="mel-cart-icon" aria-hidden="true">🛒</span>';
+		if ( ! empty( $sett['showCount'] ) && function_exists( 'WC' ) && WC()->cart ) {
+			$out .= ' <span class="mel-cart-count">' . esc_html( (string) WC()->cart->get_cart_contents_count() ) . '</span>';
+		}
+		if ( ! empty( $sett['showTotal'] ) && function_exists( 'WC' ) && WC()->cart ) {
+			$out .= ' <span class="mel-cart-total">' . wp_kses_post( WC()->cart->get_cart_total() ) . '</span>';
+		}
+		return $out . '</a>';
 	}
 
 	/**

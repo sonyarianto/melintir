@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart'];
 
 declare global {
   interface Window {
@@ -661,6 +661,16 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
 
       {(node.widgetType === 'product-title' || node.widgetType === 'product-price' || node.widgetType === 'product-cart' || node.widgetType === 'product-rating' || node.widgetType === 'product-image' || node.widgetType === 'product-excerpt') && (
         <p className="mel-status">shows the current product — use inside a Single Product template.</p>
+      )}
+
+      {node.widgetType === 'menu-cart' && (
+        <>
+          <div className="mel-row">
+            <label><input type="checkbox" checked={s.showCount !== false} onChange={(e) => onSetting({ showCount: e.target.checked })} /> count</label>
+            <label><input type="checkbox" checked={!!s.showTotal} onChange={(e) => onSetting({ showTotal: e.target.checked })} /> total</label>
+          </div>
+          <p className="mel-status">links to the WooCommerce cart page.</p>
+        </>
       )}
 
       {node.widgetType === 'accordion' && (

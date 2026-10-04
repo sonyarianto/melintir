@@ -79,6 +79,7 @@ function defaults(type: WidgetType): Partial<MelNode> {
     case 'product-cart':
     case 'product-rating':
     case 'product-excerpt': return { settings: {}, style: {} };
+    case 'menu-cart': return { settings: { showCount: true, showTotal: false }, style: {} };
   }
 }
 

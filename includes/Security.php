@@ -16,7 +16,7 @@ class Security {
 		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop',
 		'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products',
 		'product-title', 'product-price', 'product-cart',
-		'product-rating', 'product-image', 'product-excerpt',
+		'product-rating', 'product-image', 'product-excerpt', 'menu-cart',
 	);
 
 	const MAX_NODES = 1000;
@@ -332,6 +332,10 @@ class Security {
 		case 'product-cart':
 		case 'product-rating':
 		case 'product-excerpt':
+			break;
+		case 'menu-cart':
+			$out['showCount'] = ! isset( $settings['showCount'] ) || ! empty( $settings['showCount'] );
+			$out['showTotal'] = ! isset( $settings['showTotal'] ) || ! empty( $settings['showTotal'] );
 			break;
 			case 'accordion':
 				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();
