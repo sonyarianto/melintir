@@ -361,6 +361,7 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
       {node.widgetType === 'heading' && (
         <>
           <Field label="Text"><input value={s.text || ''} onChange={(e) => onSetting({ text: e.target.value })} /></Field>
+          <TagButtons current={s.text || ''} onPick={(v) => onSetting({ text: v })} />
           <Field label="Tag">
             <select value={s.tag || 'h2'} onChange={(e) => onSetting({ tag: e.target.value })}>
               {['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div'].map((t) => <option key={t} value={t}>{t}</option>)}
@@ -379,7 +380,10 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
       )}
 
       {node.widgetType === 'text' && (
-        <Field label="HTML"><textarea rows={5} value={s.html || ''} onChange={(e) => onSetting({ html: e.target.value })} /></Field>
+        <>
+          <Field label="HTML"><textarea rows={5} value={s.html || ''} onChange={(e) => onSetting({ html: e.target.value })} /></Field>
+          <TagButtons current={s.html || ''} onPick={(v) => onSetting({ html: v })} />
+        </>
       )}
 
       {node.widgetType === 'image' && (
@@ -655,5 +659,20 @@ function NavInspector({ node, onSetting }: {
         <label><input type="checkbox" checked={s.showToggle !== false} onChange={(e) => onSetting({ showToggle: e.target.checked })} /> hamburger on mobile</label>
       </div>
     </>
+  );
+}
+
+const DYN_TAGS = ['site_title', 'site_tagline', 'post_title', 'post_date', 'post_excerpt', 'author_name'];
+
+/** Append a {{tag}} to a text setting. Preview shows the raw tag; frontend resolves it. */
+function TagButtons({ current, onPick }: { current: string; onPick: (v: string) => void }) {
+  return (
+    <div className="mel-row">
+      {DYN_TAGS.map((t) => (
+        <button key={t} title={`Insert {{${t}}}`} onClick={() => onPick(`${current || ''}{{${t}}}`)}>
+          {`{{${t}}}`}
+        </button>
+      ))}
+    </div>
   );
 }

@@ -35,6 +35,54 @@ class Renderer {
 	}
 
 	/**
+	 * Resolve {{dynamic_tags}} against the current post + site.
+	 * Runs BEFORE escaping/kses at each call site, so resolved values
+	 * get the same sanitization as authored text.
+	 *
+	 * Supported: site_title, site_tagline, post_title, post_date,
+	 * post_excerpt, author_name. Unknown tags are left in place.
+	 *
+	 * @param string $str
+	 * @return string
+	 */
+	public static function dynamic_tags( $str ) {
+		if ( ! is_string( $str ) || false === strpos( $str, '{{' ) ) {
+			return $str;
+		}
+		if ( ! preg_match_all( '/\{\{([a-z_]+)\}\}/', $str, $m ) ) {
+			return $str;
+		}
+		$post = get_post();
+		foreach ( array_unique( $m[1] ) as $tag ) {
+			$value = null;
+			switch ( $tag ) {
+				case 'site_title':
+					$value = get_bloginfo( 'name' );
+					break;
+				case 'site_tagline':
+					$value = get_bloginfo( 'description' );
+					break;
+				case 'post_title':
+					$value = $post ? get_the_title( $post ) : '';
+					break;
+				case 'post_date':
+					$value = $post ? get_the_date( '', $post ) : '';
+					break;
+				case 'post_excerpt':
+					$value = $post ? get_the_excerpt( $post ) : '';
+					break;
+				case 'author_name':
+					$value = $post ? get_the_author_meta( 'display_name', $post->post_author ) : '';
+					break;
+			}
+			if ( null !== $value ) {
+				$str = str_replace( '{{' . $tag . '}}', (string) $value, $str );
+			}
+		}
+		return $str;
+	}
+
+	/**
 	 * @param array $node
 	 * @return string
 	 */
@@ -64,10 +112,10 @@ class Renderer {
 				if ( ! in_array( $tag, array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'p' ), true ) ) {
 					$tag = 'h2';
 				}
-				$text = isset( $sett['text'] ) ? wp_kses_post( (string) $sett['text'] ) : '';
+				$text = isset( $sett['text'] ) ? wp_kses_post( self::dynamic_tags( (string) $sett['text'] ) ) : '';
 				return '<' . $tag . ' class="mel-heading ' . esc_attr( $cls ) . '">' . $text . '</' . $tag . '>';
 			case 'text':
-				$html = isset( $sett['html'] ) ? wp_kses_post( (string) $sett['html'] ) : '';
+				$html = isset( $sett['html'] ) ? wp_kses_post( self::dynamic_tags( (string) $sett['html'] ) ) : '';
 				return '<div class="mel-text ' . esc_attr( $cls ) . '">' . $html . '</div>';
 			case 'image':
 				$url = isset( $sett['url'] ) ? esc_url( (string) $sett['url'] ) : '';
@@ -77,7 +125,7 @@ class Renderer {
 				}
 				return '<figure class="mel-image ' . esc_attr( $cls ) . '"><img src="' . $url . '" alt="' . $alt . '" loading="lazy" /></figure>';
 			case 'button':
-				$text = isset( $sett['text'] ) ? esc_html( (string) $sett['text'] ) : '';
+				$text = isset( $sett['text'] ) ? esc_html( self::dynamic_tags( (string) $sett['text'] ) ) : '';
 				$url  = isset( $sett['url'] ) ? esc_url( (string) $sett['url'] ) : '#';
 				return '<div class="mel-btn-wrap ' . esc_attr( $cls ) . '"><a class="mel-btn" href="' . $url . '">' . $text . '</a></div>';
 			case 'video':
@@ -96,8 +144,8 @@ class Renderer {
 			case 'spacer':
 				return '<div class="mel-spacer ' . esc_attr( $cls ) . '" aria-hidden="true"></div>';
 			case 'icon-box':
-				$title = isset( $sett['title'] ) ? esc_html( (string) $sett['title'] ) : '';
-				$desc  = isset( $sett['desc'] ) ? wp_kses_post( (string) $sett['desc'] ) : '';
+				$title = isset( $sett['title'] ) ? esc_html( self::dynamic_tags( (string) $sett['title'] ) ) : '';
+				$desc  = isset( $sett['desc'] ) ? wp_kses_post( self::dynamic_tags( (string) $sett['desc'] ) ) : '';
 				$icon  = isset( $sett['icon'] ) ? esc_attr( (string) $sett['icon'] ) : 'star';
 				return '<div class="mel-iconbox ' . esc_attr( $cls ) . '"><span class="mel-icon" data-icon="' . $icon . '"></span><h3>' . $title . '</h3><div>' . $desc . '</div></div>';
 			case 'tabs':
@@ -105,12 +153,12 @@ class Renderer {
 				$out  = '<div class="mel-tabs ' . esc_attr( $cls ) . '" data-tabs>';
 				$out .= '<div class="mel-tabs-nav" role="tablist">';
 				foreach ( array_values( $tabs ) as $i => $t ) {
-					$title = isset( $t['title'] ) ? esc_html( (string) $t['title'] ) : 'Tab';
+					$title = isset( $t['title'] ) ? esc_html( self::dynamic_tags( (string) $t['title'] ) ) : 'Tab';
 					$out  .= '<button role="tab" data-tab="' . esc_attr( (string) $i ) . '">' . $title . '</button>';
 				}
 				$out .= '</div><div class="mel-tabs-panels">';
 				foreach ( array_values( $tabs ) as $i => $t ) {
-					$content = isset( $t['content'] ) ? wp_kses_post( (string) $t['content'] ) : '';
+					$content = isset( $t['content'] ) ? wp_kses_post( self::dynamic_tags( (string) $t['content'] ) ) : '';
 					$hidden  = 0 === $i ? '' : ' hidden';
 					$out    .= '<div role="tabpanel" data-panel="' . esc_attr( (string) $i ) . '"' . $hidden . '>' . $content . '</div>';
 				}
@@ -123,8 +171,8 @@ class Renderer {
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
 				foreach ( array_values( $items ) as $i => $it ) {
-					$title   = isset( $it['title'] ) ? esc_html( (string) $it['title'] ) : '';
-					$content = isset( $it['content'] ) ? wp_kses_post( (string) $it['content'] ) : '';
+					$title   = isset( $it['title'] ) ? esc_html( self::dynamic_tags( (string) $it['title'] ) ) : '';
+					$content = isset( $it['content'] ) ? wp_kses_post( self::dynamic_tags( (string) $it['content'] ) ) : '';
 					$open    = 0 === $i ? ' open' : '';
 					$out    .= '<details class="mel-acc-item"' . $open . '><summary>' . $title . '</summary><div>' . $content . '</div></details>';
 				}
@@ -144,13 +192,13 @@ class Renderer {
 				return $out . '</div>';
 			case 'counter':
 				$num = isset( $sett['number'] ) ? intval( $sett['number'] ) : 0;
-				$pre = isset( $sett['prefix'] ) ? esc_html( (string) $sett['prefix'] ) : '';
-				$suf = isset( $sett['suffix'] ) ? esc_html( (string) $sett['suffix'] ) : '';
+				$pre = isset( $sett['prefix'] ) ? esc_html( self::dynamic_tags( (string) $sett['prefix'] ) ) : '';
+				$suf = isset( $sett['suffix'] ) ? esc_html( self::dynamic_tags( (string) $sett['suffix'] ) ) : '';
 				return '<div class="mel-counter ' . esc_attr( $cls ) . '">' . $pre . '<span data-count="' . $num . '">0</span>' . $suf . '</div>';
 			case 'testimonial':
-				$quote  = isset( $sett['quote'] ) ? wp_kses_post( (string) $sett['quote'] ) : '';
-				$name   = isset( $sett['name'] ) ? esc_html( (string) $sett['name'] ) : '';
-				$role   = isset( $sett['role'] ) ? esc_html( (string) $sett['role'] ) : '';
+				$quote  = isset( $sett['quote'] ) ? wp_kses_post( self::dynamic_tags( (string) $sett['quote'] ) ) : '';
+				$name   = isset( $sett['name'] ) ? esc_html( self::dynamic_tags( (string) $sett['name'] ) ) : '';
+				$role   = isset( $sett['role'] ) ? esc_html( self::dynamic_tags( (string) $sett['role'] ) ) : '';
 				$avatar = isset( $sett['avatar'] ) ? esc_url( (string) $sett['avatar'] ) : '';
 				$out    = '<figure class="mel-testimonial ' . esc_attr( $cls ) . '"><blockquote>' . $quote . '</blockquote><figcaption>';
 				if ( '' !== $avatar ) {
