@@ -78,16 +78,13 @@ class Plugin {
 
 	private function enqueue_editor( $post_id ) {
 		wp_enqueue_media(); // for the image widget's library picker.
-		$js  = MELINTIR_URL . 'assets/editor/editor.js';
-		$css = MELINTIR_URL . 'assets/editor/editor.css';
+		$js     = MELINTIR_URL . 'assets/editor/editor.js';
 		// filemtime cache-bust when built locally; fallback to version.
-		$js_ver  = file_exists( MELINTIR_PATH . 'assets/editor/editor.js' ) ? (string) filemtime( MELINTIR_PATH . 'assets/editor/editor.js' ) : MELINTIR_VERSION;
-		$css_ver = file_exists( MELINTIR_PATH . 'assets/editor/editor.css' ) ? (string) filemtime( MELINTIR_PATH . 'assets/editor/editor.css' ) : MELINTIR_VERSION;
+		$js_ver = file_exists( MELINTIR_PATH . 'assets/editor/editor.js' ) ? (string) filemtime( MELINTIR_PATH . 'assets/editor/editor.js' ) : MELINTIR_VERSION;
 
+		// Note: editor CSS is inlined into editor.js by the build (IIFE),
+		// so there is no separate editor.css to enqueue.
 		wp_enqueue_script( 'melintir-editor', $js, array(), $js_ver, true );
-		if ( file_exists( MELINTIR_PATH . 'assets/editor/editor.css' ) ) {
-			wp_enqueue_style( 'melintir-editor', $css, array(), $css_ver );
-		}
 		wp_localize_script(
 			'melintir-editor',
 			'MelintirData',
