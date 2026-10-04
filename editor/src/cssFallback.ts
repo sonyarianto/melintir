@@ -19,6 +19,10 @@ export function generateCssFallback(doc: MelDoc): string {
     const sel = `.mel-${String(n.id).replace(/[^a-zA-Z0-9_-]/g, '')}`;
     const decl = decls(n.style || {});
     if (decl) out += `${sel}{${decl}}\n`;
+    if (n.style?.hover) {
+      const hd = decls(n.style.hover);
+      if (hd) out += `${sel}:hover{${hd}}\n`;
+    }
     for (const [bp, max] of [['tablet', 1024], ['mobile', 767]] as const) {
       const s = n.style?.[bp] || n.style?.responsive?.[bp];
       if (s) {

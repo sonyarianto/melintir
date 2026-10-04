@@ -522,6 +522,8 @@ export default function App() {
             onSetting={(p) => setSetting(sel, p)}
             onRemove={() => removeNode(sel.id)}
             onCopy={() => copySelected(sel)}
+            onHover={(patch) => updateNode(sel.id, { style: { hover: { ...((sel.style as any)?.hover || {}), ...patch } } })}
+            onClearHover={() => updateNode(sel.id, { style: { ...(sel.style as any), hover: {} } })}
             onDuplicate={() => duplicateSelected()}
             onUp={() => nudgeSelected(-1)}
             onDown={() => nudgeSelected(1)}
@@ -564,7 +566,7 @@ export default function App() {
   );
 }
 
-function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onDuplicate, onUp, onDown }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onHover, onClearHover, onDuplicate, onUp, onDown }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
@@ -573,6 +575,8 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
   onSetting: (p: Record<string, any>) => void;
   onRemove: () => void;
   onCopy: () => void;
+  onHover: (patch: Record<string, any>) => void;
+  onClearHover: () => void;
   onDuplicate: () => void;
   onUp: () => void;
   onDown: () => void;
@@ -975,6 +979,13 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
 
       <BoxFields layout={L} globals={globals} onStyle={(p) => onStyle(p)} />
 
+      <HoverFields
+        hover={(node.style as any)?.hover || {}}
+        globals={globals}
+        onHover={(patch) => onHover(patch)}
+        onClear={() => onClearHover()}
+      />
+
       <div className="mel-advanced">
         <h4>Motion</h4>
         <Field label="Entrance">
@@ -1048,6 +1059,39 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
       {(node.widgetType === 'text' || node.widgetType === 'button') && (
         <FontField value={T.family || ''} globals={globals} onChange={(v) => onStyle({ typo: { family: v } })} />
       )}
+    </div>
+  );
+}
+
+/** Hover state (desktop scope, all nodes): bg + text + shadow. Full style_decls fidelity underneath. */
+function HoverFields({ hover, globals, onHover, onClear }: {
+  hover: any;
+  globals: Record<string, string>;
+  onHover: (patch: Record<string, any>) => void;
+  onClear: () => void;
+}) {
+  const H = hover || {};
+  const HL = H.layout || {};
+  const HT = H.typo || {};
+  const dirty = Object.keys(H).length > 0;
+  return (
+    <div className="mel-advanced">
+      <h4>Hover{dirty && <button title="Clear hover styles" onClick={onClear}>✕</button>}</h4>
+      <Field label="Background">
+        <ColorField value={HL.bg || ''} globals={globals} fallback="#ffffff" onChange={(v) => onHover({ layout: { ...HL, bg: v } })} />
+      </Field>
+      <Field label="Text color">
+        <ColorField value={HT.color || ''} globals={globals} fallback="#0f172a" onChange={(v) => onHover({ typo: { ...HT, color: v } })} />
+      </Field>
+      <Field label="Shadow">
+        <select value={HL.shadow || ''} onChange={(e) => onHover({ layout: { ...HL, shadow: e.target.value || undefined } })}>
+          <option value="">none</option>
+          <option value="sm">small</option>
+          <option value="md">medium</option>
+          <option value="lg">large</option>
+          <option value="xl">extra large</option>
+        </select>
+      </Field>
     </div>
   );
 }

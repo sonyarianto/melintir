@@ -127,6 +127,12 @@ fn node_css(node: &Node, out: &mut String) {
         out.push_str(&decl);
         out.push_str("}\n");
     }
+    if let Some(h) = node.style.hover.as_deref() {
+        let d = style_decls(h);
+        if !d.is_empty() {
+            out.push_str(&format!("{sel}:hover{{{d}}}\n"));
+        }
+    }
     // v0.1 supports both `tablet`/`mobile` top-level and `responsive.tablet`.
     let bps = [("tablet", 1024, breakpoint_style(&node.style, "tablet")), ("mobile", 767, breakpoint_style(&node.style, "mobile"))];
     for (_, max, bp) in bps {
@@ -279,6 +285,25 @@ mod tests {
         let css = generate_css(&doc);
         assert!(css.contains(".mel-w001{"));
         assert!(css.contains("font-size:48px"));
+    }
+
+    /// Hover scope emits :hover rules mirroring Renderer::node_css.
+    #[test]
+    fn hover_scope() {
+        let doc: Document = serde_json::from_value(serde_json::json!({
+            "version": "0.1.0",
+            "root": {"id":"root","elType":"container","settings":{},"style":{},"elements":[
+                {"id":"w1","elType":"widget","widgetType":"button","settings":{"text":"Go"},"style":{
+                    "layout": {"bg": "#2563eb"},
+                    "hover": {"layout": {"bg": "#1d4ed8", "shadow": "md"}}
+                },"elements":[]}
+            ]}
+        }))
+        .unwrap();
+        let css = generate_css(&doc);
+        assert!(css.contains(".mel-w1:hover{"), "missing :hover rule, got: {css}");
+        assert!(css.contains("background:#1d4ed8;"), "missing hover bg, got: {css}");
+        assert!(css.contains("box-shadow:0 4px 12px rgba(15,23,42,.12);"), "missing hover shadow, got: {css}");
     }
 
     /// Box depth slice: shadow presets, borders and gradients must emit the

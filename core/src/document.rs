@@ -101,6 +101,8 @@ pub struct Style {
     pub tablet: Option<Box<Style>>,
     #[serde(default)]
     pub mobile: Option<Box<Style>>,
+    #[serde(default)]
+    pub hover: Option<Box<Style>>,
     #[serde(default, deserialize_with = "de_resp_map")]
     pub responsive: HashMap<String, Box<Style>>,
 }

@@ -589,6 +589,14 @@ class Security {
 				$out['typo'] = $typo;
 			}
 		}
+		if ( isset( $style['hover'] ) && is_array( $style['hover'] ) ) {
+			$hover = self::sanitize_style( $style['hover'] );
+			// Flat scope: no nested hover, no breakpoint-in-hover combos.
+			unset( $hover['hover'], $hover['tablet'], $hover['mobile'], $hover['responsive'] );
+			if ( ! empty( $hover ) ) {
+				$out['hover'] = $hover;
+			}
+		}
 		foreach ( array( 'tablet', 'mobile' ) as $bp ) {
 			if ( isset( $style[ $bp ] ) && is_array( $style[ $bp ] ) ) {
 				$out[ $bp ] = self::sanitize_style( $style[ $bp ] );

@@ -414,6 +414,12 @@ class Renderer {
 		if ( '' !== $decl ) {
 			$css .= $sel . '{' . $decl . "}\n";
 		}
+		if ( isset( $style['hover'] ) && is_array( $style['hover'] ) ) {
+			$hover_decl = self::style_decls( $style['hover'] );
+			if ( '' !== $hover_decl ) {
+				$css .= $sel . ':hover{' . $hover_decl . "}\n";
+			}
+		}
 		foreach ( array( 'tablet' => 1024, 'mobile' => 767 ) as $bp => $max ) {
 			$bp_style = null;
 			if ( isset( $style[ $bp ] ) && is_array( $style[ $bp ] ) ) {
