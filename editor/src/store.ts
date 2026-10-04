@@ -34,6 +34,18 @@ function defaults(type: WidgetType): Partial<MelNode> {
     case 'spacer': return { settings: {}, style: { layout: { padding: 24 } as any } };
     case 'icon-box': return { settings: { title: 'Feature', desc: 'Description', icon: 'star' }, style: {} };
     case 'tabs': return { settings: { tabs: [{ title: 'Tab 1', content: 'Content 1' }, { title: 'Tab 2', content: 'Content 2' }] }, style: {} };
+    case 'form': return {
+      settings: {
+        fields: [
+          { label: 'Name', name: 'name', type: 'text', required: true, options: [] },
+          { label: 'Email', name: 'email', type: 'email', required: true, options: [] },
+          { label: 'Message', name: 'message', type: 'textarea', required: false, options: [] },
+        ],
+        buttonText: 'Send',
+        successMsg: 'Thanks! We got your message.',
+      },
+      style: {},
+    };
   }
 }
 

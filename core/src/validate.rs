@@ -2,7 +2,7 @@ use crate::document::Document;
 
 pub const ALLOWED_WIDGETS: &[&str] = &[
     "heading", "text", "image", "button",
-    "video", "divider", "spacer", "icon-box", "tabs",
+    "video", "divider", "spacer", "icon-box", "tabs", "form",
 ];
 pub const MAX_NODES: usize = 1000;
 pub const MAX_DEPTH: usize = 6;

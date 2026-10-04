@@ -13,7 +13,7 @@ class Security {
 
 	const ALLOWED_WIDGETS = array(
 		'heading', 'text', 'image', 'button',
-		'video', 'divider', 'spacer', 'icon-box', 'tabs',
+		'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form',
 	);
 
 	const MAX_NODES = 1000;
@@ -193,6 +193,42 @@ class Security {
 					);
 				}
 				$out['tabs'] = $clean_tabs;
+				break;
+			case 'form':
+				$fields = isset( $settings['fields'] ) && is_array( $settings['fields'] ) ? array_slice( $settings['fields'], 0, 20 ) : array();
+				$clean_fields = array();
+				foreach ( $fields as $f ) {
+					if ( ! is_array( $f ) ) {
+						continue;
+					}
+					$type = isset( $f['type'] ) ? (string) $f['type'] : 'text';
+					if ( ! in_array( $type, array( 'text', 'email', 'textarea', 'select' ), true ) ) {
+						$type = 'text';
+					}
+					$options = array();
+					if ( 'select' === $type && isset( $f['options'] ) && is_array( $f['options'] ) ) {
+						foreach ( array_slice( $f['options'], 0, 20 ) as $o ) {
+							$o = sanitize_text_field( (string) $o );
+							if ( '' !== $o ) {
+								$options[] = $o;
+							}
+						}
+					}
+					$name = isset( $f['name'] ) ? sanitize_key( (string) $f['name'] ) : '';
+					if ( '' === $name ) {
+						$name = 'field_' . count( $clean_fields );
+					}
+					$clean_fields[] = array(
+						'label'    => isset( $f['label'] ) ? sanitize_text_field( (string) $f['label'] ) : $name,
+						'name'     => $name,
+						'type'     => $type,
+						'required' => ! empty( $f['required'] ),
+						'options'  => $options,
+					);
+				}
+				$out['fields']     = $clean_fields;
+				$out['buttonText'] = isset( $settings['buttonText'] ) ? sanitize_text_field( (string) $settings['buttonText'] ) : 'Send';
+				$out['successMsg'] = isset( $settings['successMsg'] ) ? sanitize_text_field( (string) $settings['successMsg'] ) : 'Thanks! We got your message.';
 				break;
 			default:
 				// divider, spacer: no user HTML.

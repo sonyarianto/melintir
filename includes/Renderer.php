@@ -115,9 +115,70 @@ class Renderer {
 					$out    .= '<div role="tabpanel" data-panel="' . esc_attr( (string) $i ) . '"' . $hidden . '>' . $content . '</div>';
 				}
 				return $out . '</div></div>';
+			case 'form':
+				return self::render_form( $id, $cls, $sett );
 			default:
 				return '';
 		}
+	}
+
+	/**
+	 * Plain-POST form (no JS required): posts to admin-post.php, handler
+	 * in Form.php validates, stores an entry, redirects back with ?melintir_sent.
+	 *
+	 * @param string $id
+	 * @param string $cls
+	 * @param array  $sett
+	 * @return string
+	 */
+	private static function render_form( $id, $cls, $sett ) {
+		$fields  = isset( $sett['fields'] ) && is_array( $sett['fields'] ) ? $sett['fields'] : array();
+		$btn     = isset( $sett['buttonText'] ) && '' !== $sett['buttonText'] ? $sett['buttonText'] : 'Send';
+		$success = isset( $sett['successMsg'] ) ? $sett['successMsg'] : '';
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only.
+		if ( isset( $_GET['melintir_sent'] ) && $id === preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $_GET['melintir_sent'] ) ) {
+			return '<div class="mel-form-sent ' . esc_attr( $cls ) . '">' . esc_html( $success ) . '</div>';
+		}
+
+		$out  = '<form class="mel-form ' . esc_attr( $cls ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$out .= '<input type="hidden" name="action" value="melintir_submit" />';
+		$out .= '<input type="hidden" name="mel_node" value="' . esc_attr( $id ) . '" />';
+		$out .= '<input type="hidden" name="mel_post" value="' . esc_attr( (string) get_the_ID() ) . '" />';
+		$out .= wp_nonce_field( 'melintir_form', 'melintir_nonce', true, false );
+		// Honeypot: humans never fill this.
+		$out .= '<input type="text" name="mel_website" value="" style="display:none" tabindex="-1" autocomplete="off" />';
+		foreach ( $fields as $f ) {
+			if ( ! is_array( $f ) || ! isset( $f['name'], $f['type'] ) ) {
+				continue;
+			}
+			$name     = esc_attr( (string) $f['name'] );
+			$label    = isset( $f['label'] ) ? esc_html( (string) $f['label'] ) : $name;
+			$req      = ! empty( $f['required'] ) ? ' required' : '';
+			$req_mark = ! empty( $f['required'] ) ? ' *' : '';
+			$out     .= '<label class="mel-field"><span>' . $label . $req_mark . '</span>';
+			switch ( $f['type'] ) {
+				case 'textarea':
+					$out .= '<textarea name="mel_f[' . $name . ']"' . $req . '></textarea>';
+					break;
+				case 'select':
+					$out .= '<select name="mel_f[' . $name . ']"' . $req . '>';
+					foreach ( (array) ( isset( $f['options'] ) ? $f['options'] : array() ) as $o ) {
+						$out .= '<option>' . esc_html( (string) $o ) . '</option>';
+					}
+					$out .= '</select>';
+					break;
+				case 'email':
+					$out .= '<input type="email" name="mel_f[' . $name . ']"' . $req . ' />';
+					break;
+				default:
+					$out .= '<input type="text" name="mel_f[' . $name . ']"' . $req . ' />';
+					break;
+			}
+			$out .= '</label>';
+		}
+		$out .= '<button type="submit" class="mel-btn">' . esc_html( $btn ) . '</button></form>';
+		return $out;
 	}
 
 	/**

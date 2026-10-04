@@ -29,6 +29,14 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
     case 'spacer': return wrap(<div className="mel-spacer" style={{ height: 24 }} />);
     case 'icon-box': return wrap(<div className="mel-iconbox"><h3>{s.title}</h3><div>{s.desc}</div></div>);
     case 'tabs': return wrap(<div className="mel-tabs">{(s.tabs || []).map((t: any, i: number) => <span key={i} className="mel-tab">{t.title}</span>)}</div>);
+    case 'form': return wrap(
+      <div className="mel-form">
+        {(s.fields || []).map((f: any, i: number) => (
+          <span key={i} className="mel-field"><span>{f.label}{f.required ? ' *' : ''}</span></span>
+        ))}
+        <span className="mel-btn">{s.buttonText || 'Send'}</span>
+      </div>
+    );
     default: return wrap(<div>?</div>);
   }
 }

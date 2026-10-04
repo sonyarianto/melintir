@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form'];
 
 declare global {
   interface Window {
@@ -361,6 +361,52 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
 
       {node.widgetType === 'spacer' && (
         <Field label="Height ≈ padding (px)"><Num value={L.padding} onChange={(v) => onStyle({ layout: { padding: v } })} /></Field>
+      )}
+
+      {node.widgetType === 'form' && (
+        <>
+          {(s.fields || []).map((f: any, i: number) => (
+            <div key={i} className="mel-tabedit">
+              <Field label="Label">
+                <input value={f.label || ''} onChange={(e) => {
+                  const fields = [...(s.fields || [])];
+                  const slug = (e.target.value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `field_${i}`;
+                  fields[i] = { ...fields[i], label: e.target.value, name: fields[i].name || slug };
+                  onSetting({ fields });
+                }} />
+              </Field>
+              <Field label="Type">
+                <select value={f.type || 'text'} onChange={(e) => {
+                  const fields = [...(s.fields || [])];
+                  fields[i] = { ...fields[i], type: e.target.value };
+                  onSetting({ fields });
+                }}>
+                  {['text', 'email', 'textarea', 'select'].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </Field>
+              <div className="mel-row">
+                <label><input type="checkbox" checked={!!f.required} onChange={(e) => {
+                  const fields = [...(s.fields || [])];
+                  fields[i] = { ...fields[i], required: e.target.checked };
+                  onSetting({ fields });
+                }} /> required</label>
+                <button onClick={() => onSetting({ fields: (s.fields || []).filter((_: any, j: number) => j !== i) })}>remove</button>
+              </div>
+              {f.type === 'select' && (
+                <Field label="Options (one per line)">
+                  <textarea rows={3} value={(f.options || []).join('\n')} onChange={(e) => {
+                    const fields = [...(s.fields || [])];
+                    fields[i] = { ...fields[i], options: e.target.value.split('\n').map((o) => o.trim()).filter(Boolean) };
+                    onSetting({ fields });
+                  }} />
+                </Field>
+              )}
+            </div>
+          ))}
+          <button onClick={() => onSetting({ fields: [...(s.fields || []), { label: 'New field', name: `field_${(s.fields || []).length}`, type: 'text', required: false, options: [] }] })}>+ add field</button>
+          <Field label="Button text"><input value={s.buttonText || ''} onChange={(e) => onSetting({ buttonText: e.target.value })} /></Field>
+          <Field label="Success message"><input value={s.successMsg || ''} onChange={(e) => onSetting({ successMsg: e.target.value })} /></Field>
+        </>
       )}
 
       {(node.widgetType === 'text' || node.widgetType === 'button') && (
