@@ -6,7 +6,7 @@ import type { MelNode, WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
-const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart'];
+const PALETTE: WidgetType[] = ['heading', 'text', 'image', 'button', 'video', 'divider', 'spacer', 'icon-box', 'tabs', 'form', 'loop', 'accordion', 'gallery', 'counter', 'testimonial', 'nav', 'products', 'product-title', 'product-price', 'product-cart', 'product-rating', 'product-image', 'product-excerpt', 'menu-cart', 'woo-cart', 'woo-checkout'];
 
 declare global {
   interface Window {
@@ -671,6 +671,10 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
           </div>
           <p className="mel-status">links to the WooCommerce cart page.</p>
         </>
+      )}
+
+      {(node.widgetType === 'woo-cart' || node.widgetType === 'woo-checkout') && (
+        <p className="mel-status">embeds Woo's own {node.widgetType === 'woo-cart' ? 'cart' : 'checkout'} here — full functionality, Woo styles.</p>
       )}
 
       {node.widgetType === 'accordion' && (

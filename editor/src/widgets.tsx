@@ -69,6 +69,8 @@ export function PreviewNode({ node, selected, onSelect }: { node: MelNode; selec
     case 'product-image': return wrap(<div className="mel-pimg">🛍 product image</div>);
     case 'product-excerpt': return wrap(<div className="mel-pexcerpt">Short description shows on the product page.</div>);
     case 'menu-cart': return wrap(<span className="mel-menucart"><span className="mel-cart-icon">🛒</span>{s.showCount !== false && <span className="mel-cart-count">0</span>}{!!s.showTotal && <span className="mel-cart-total">$0.00</span>}</span>);
+    case 'woo-cart': return wrap(<div className="mel-wooembed">🛒 Cart shows here (WooCommerce)</div>);
+    case 'woo-checkout': return wrap(<div className="mel-wooembed">💳 Checkout shows here (WooCommerce)</div>);
     default: return wrap(<div>?</div>);
   }
 }

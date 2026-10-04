@@ -183,6 +183,10 @@ class Renderer {
 			return self::render_product_excerpt( $cls );
 		case 'menu-cart':
 			return self::render_menu_cart( $cls, $sett );
+		case 'woo-cart':
+			return self::render_woo_shortcode( $cls, 'cart' );
+		case 'woo-checkout':
+			return self::render_woo_shortcode( $cls, 'checkout' );
 			case 'accordion':
 				$items = isset( $sett['items'] ) && is_array( $sett['items'] ) ? $sett['items'] : array();
 				$out   = '<div class="mel-accordion ' . esc_attr( $cls ) . '">';
@@ -722,6 +726,24 @@ class Renderer {
 			$out .= ' <span class="mel-cart-total">' . wp_kses_post( WC()->cart->get_cart_total() ) . '</span>';
 		}
 		return $out . '</a>';
+	}
+
+	/**
+	 * Cart / checkout embeds (Woo lite). Renders Woo's own shortcodes inside
+	 * a Melintir layout, so the full purchase path can live in the builder.
+	 * Fixed shortcode per widget (no arbitrary shortcode execution); Woo's
+	 * markup and styles apply untouched.
+	 *
+	 * @param string $cls
+	 * @param string $page cart|checkout
+	 * @return string
+	 */
+	private static function render_woo_shortcode( $cls, $page ) {
+		if ( ! function_exists( 'WC' ) || ! post_type_exists( 'product' ) ) {
+			return '<p class="mel-loop-empty ' . esc_attr( $cls ) . '">' . esc_html__( 'Install and activate WooCommerce to display this block.', 'melintir' ) . '</p>';
+		}
+		$tag = 'checkout' === $page ? '[woocommerce_checkout]' : '[woocommerce_cart]';
+		return '<div class="' . esc_attr( $cls ) . '">' . do_shortcode( $tag ) . '</div>';
 	}
 
 	/**
