@@ -77,6 +77,7 @@ class Plugin {
 	}
 
 	private function enqueue_editor( $post_id ) {
+		wp_enqueue_media(); // for the image widget's library picker.
 		$js  = MELINTIR_URL . 'assets/editor/editor.js';
 		$css = MELINTIR_URL . 'assets/editor/editor.css';
 		// filemtime cache-bust when built locally; fallback to version.
