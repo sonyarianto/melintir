@@ -406,7 +406,7 @@ export default function App() {
             <button key={w} draggable onDragStart={startPaletteDrag(w)} onDragEnd={endDrag} onClick={() => addWidget(w)}>{w}</button>
           ))}
         </div>
-        <GlobalsPanel colors={doc.globals?.colors || {}} fonts={doc.globals?.fonts || {}} onChange={setGlobals} />
+        <GlobalsPanel colors={doc.globals?.colors || {}} fonts={doc.globals?.fonts || {}} onChange={setGlobals} onNotice={setStatus} />
         <h4>Templates</h4>
         <div className="mel-row">
           <button onClick={exportJson}>⬇ Export</button>
@@ -1182,19 +1182,44 @@ export const FONT_STACK_OPTIONS = [
   { key: 'handwriting', label: 'Handwriting', stack: `'Comic Sans MS', 'Chalkboard SE', cursive` },
 ];
 
-function GlobalsPanel({ colors, fonts, onChange }: {
+function GlobalsPanel({ colors, fonts, onChange, onNotice }: {
   colors: Record<string, string>;
   fonts: Record<string, string>;
   onChange: (p: { colors?: Record<string, string>; fonts?: Record<string, string> }) => void;
+  onNotice?: (msg: string) => void;
 }) {
   const [name, setName] = useState('accent');
   const [hex, setHex] = useState('#2563eb');
   const [fname, setFname] = useState('heading');
   const [fstack, setFstack] = useState('system-serif');
   const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  /** Pull the active theme's palette in as theme-* globals (never overwrites). */
+  const importTheme = async () => {
+    const d: any = (window as any).MelintirData;
+    const base = typeof d?.restUrl === 'string' ? d.restUrl.split('/melintir/v1')[0] : null;
+    if (!base) {
+      onNotice?.('theme import: no REST base');
+      return;
+    }
+    try {
+      const r = await fetch(wpApiUrl(base, '/melintir/v1/theme-globals'), {
+        headers: d?.nonce ? { 'X-WP-Nonce': d.nonce } : {},
+      });
+      const j = await r.json();
+      const tc = j?.colors && typeof j.colors === 'object' ? j.colors : {};
+      const tf = j?.fonts && typeof j.fonts === 'object' ? j.fonts : {};
+      onChange({ colors: { ...(colors || {}), ...tc }, fonts: { ...(fonts || {}), ...tf } });
+      onNotice?.(`theme import: ${Object.keys(tc).length} colors, ${Object.keys(tf).length} fonts (theme-*)`);
+    } catch {
+      onNotice?.('theme import failed');
+    }
+  };
   return (
     <>
       <h4>Globals</h4>
+      <div className="mel-row">
+        <button onClick={importTheme} title="Copy the active theme's palette into globals as theme-*">⬇ Theme → globals</button>
+      </div>
       {Object.entries(colors || {}).map(([n, h]) => (
         <div key={n} className="mel-row">
           <span className="mel-status" title={`var(--mel-${n})`}>{n}</span>

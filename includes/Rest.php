@@ -105,6 +105,15 @@ class Rest {
 				'permission_callback' => array( __CLASS__, 'can_edit' ),
 			)
 		);
+		register_rest_route(
+			'melintir/v1',
+			'/theme-globals',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'theme_globals' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+			)
+		);
 	}
 
 	public static function can_edit( \WP_REST_Request $req ) {
@@ -274,6 +283,52 @@ class Rest {
 			);
 		}
 		return rest_ensure_response( $out );
+	}
+
+	/**
+	 * FSE bridge: expose the active theme's merged palette + font families
+	 * (theme.json theme/user/custom origins, so Site Editor customizations
+	 * come along) as Melintir globals. Names are prefixed `theme-` so an
+	 * import can never clobber hand-made globals; only hex colors and
+	 * sanitizer-safe font stacks are returned.
+	 */
+	public static function theme_globals() {
+		$colors = array();
+		$fonts  = array();
+		if ( class_exists( '\WP_Theme_JSON_Resolver' ) ) {
+			$settings = \WP_Theme_JSON_Resolver::get_merged_data()->get_settings();
+			if ( is_array( $settings ) ) {
+				self::walk_presets( $settings, $colors, $fonts );
+			}
+		}
+		return rest_ensure_response(
+			array(
+				'colors' => array_slice( $colors, 0, 20, true ),
+				'fonts'  => array_slice( $fonts, 0, 20, true ),
+			)
+		);
+	}
+
+	private static function walk_presets( $node, &$colors, &$fonts ) {
+		if ( ! is_array( $node ) ) {
+			return;
+		}
+		if ( isset( $node['slug'] ) ) {
+			$slug = 'theme-' . sanitize_key( (string) $node['slug'] );
+			if ( isset( $node['color'] ) && sanitize_hex_color( (string) $node['color'] ) ) {
+				$colors[ $slug ] = (string) $node['color'];
+			}
+			if ( isset( $node['fontFamily'] ) ) {
+				$font = Security::sanitize_font( $node['fontFamily'] );
+				if ( '' !== $font ) {
+					$fonts[ $slug ] = $font;
+				}
+			}
+			return;
+		}
+		foreach ( $node as $child ) {
+			self::walk_presets( $child, $colors, $fonts );
+		}
 	}
 
 	const PATTERNS_OPTION = 'melintir_patterns';
