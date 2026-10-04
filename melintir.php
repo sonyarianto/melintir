@@ -27,6 +27,7 @@ require_once MELINTIR_PATH . 'includes/Migrator.php';
 require_once MELINTIR_PATH . 'includes/Form.php';
 require_once MELINTIR_PATH . 'includes/Theme.php';
 require_once MELINTIR_PATH . 'includes/Rest.php';
+require_once MELINTIR_PATH . 'includes/Patterns.php';
 require_once MELINTIR_PATH . 'includes/Blocks.php';
 require_once MELINTIR_PATH . 'includes/Plugin.php';
 

@@ -18,7 +18,7 @@ class Security {
 		'product-title', 'product-price', 'product-cart',
 		'product-rating', 'product-image', 'product-excerpt', 'menu-cart',
 		'woo-cart', 'woo-checkout', 'countdown', 'carousel', 'price-table',
-		'social', 'star-rating',
+		'social', 'star-rating', 'pattern-ref',
 	);
 
 	const MAX_NODES = 1000;
@@ -421,6 +421,14 @@ class Security {
 			break;
 		case 'star-rating':
 			$out['rating'] = max( 0, min( 5, isset( $settings['rating'] ) ? round( floatval( $settings['rating'] ) * 2 ) / 2 : 5 ) );
+			break;
+		case 'pattern-ref':
+			// A live link to a saved pattern. The id shape is enforced here;
+			// existence + cycle checks happen at expansion time (Patterns).
+			$pid = isset( $settings['patternId'] ) ? (string) $settings['patternId'] : '';
+			if ( preg_match( '/^p[a-zA-Z0-9]{1,16}$/', $pid ) ) {
+				$out['patternId'] = $pid;
+			}
 			break;
 			case 'accordion':
 				$items = isset( $settings['items'] ) && is_array( $settings['items'] ) ? array_slice( $settings['items'], 0, 20 ) : array();

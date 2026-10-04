@@ -4,7 +4,7 @@ export type WidgetType =
   | 'video' | 'divider' | 'spacer' | 'icon-box' | 'tabs' | 'form' | 'loop'
   | 'accordion' | 'gallery' | 'counter' | 'testimonial' | 'nav' | 'products'
   | 'product-title' | 'product-price' | 'product-cart' | 'product-rating' | 'product-image' | 'product-excerpt' | 'menu-cart' | 'woo-cart' | 'woo-checkout'
-  | 'countdown' | 'carousel' | 'price-table' | 'social' | 'star-rating';
+  | 'countdown' | 'carousel' | 'price-table' | 'social' | 'star-rating' | 'pattern-ref';
 
 export interface MelNode {
   id: string;

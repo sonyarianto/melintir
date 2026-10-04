@@ -26,7 +26,7 @@ export function DropSlot({ parentId, index, dnd }: { parentId: string; index: nu
   );
 }
 
-export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit, onContext, dnd }: {
+export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit, onContext, dnd, expansions, patternNames, lockTo }: {
   node: MelNode;
   selected: boolean;
   selectedId?: string | null;
@@ -34,14 +34,25 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
   onInlineEdit?: (id: string, field: string, value: string) => void;
   onContext?: (id: string, x: number, y: number) => void;
   dnd?: DndCtx;
+  /** ref-instance-id -> expanded node (from expandPreview); locked content ids match preview CSS. */
+  expansions?: Record<string, MelNode>;
+  /** patternId -> display name for the 🔗 badge. */
+  patternNames?: Record<string, string>;
+  /** When set, this subtree is linked content: clicks/context select lockTo, no editing or dragging. */
+  lockTo?: string | null;
 }) {
+  const selfId = lockTo ?? node.id;
   const contextMenu = (e: ReactMouseEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    onSelect(node.id);
-    onContext?.(node.id, e.clientX, e.clientY);
+    onSelect(selfId);
+    onContext?.(selfId, e.clientX, e.clientY);
   };
-  const isSel = selected || selectedId === node.id;
+  const selectSelf = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    onSelect(selfId);
+  };
+  const isSel = selected || selectedId === selfId;
   const cls = `mel-${node.id}${isSel ? ' mel-selected' : ''}`;
   const guardEdit = (e: DragEvent) => {
     // Text being edited must never start a block drag.
@@ -54,32 +65,32 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
   if (node.elType === 'container') {
     return (
       <div
-        className={`mel-container ${cls}${dnd ? ' mel-draggable' : ''}`}
-        draggable={!!dnd}
+        className={`mel-container ${cls}${dnd && !lockTo ? ' mel-draggable' : ''}`}
+        draggable={!!dnd && !lockTo}
         onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
         onDragEnd={dnd?.onDragEnd}
-        onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+        onClick={selectSelf}
         onContextMenu={contextMenu}
       >
         {(node.elements || []).map((c, i) => (
           <Fragment key={c.id}>
-            <DropSlot parentId={node.id} index={i} dnd={dnd} />
-            <PreviewNode node={c} selected={false} selectedId={selectedId} onSelect={onSelect} onInlineEdit={onInlineEdit} onContext={onContext} dnd={dnd} />
+            {!lockTo && <DropSlot parentId={node.id} index={i} dnd={dnd} />}
+            <PreviewNode node={c} selected={false} selectedId={selectedId} onSelect={onSelect} onInlineEdit={lockTo ? undefined : onInlineEdit} onContext={onContext} dnd={dnd} expansions={expansions} lockTo={lockTo} />
           </Fragment>
         ))}
-        <DropSlot parentId={node.id} index={(node.elements || []).length} dnd={dnd} />
-        {node.elements.length === 0 && <div className="mel-empty">Empty container — drop blocks here</div>}
+        {!lockTo && <DropSlot parentId={node.id} index={(node.elements || []).length} dnd={dnd} />}
+        {node.elements.length === 0 && !lockTo && <div className="mel-empty">Empty container — drop blocks here</div>}
       </div>
     );
   }
   const s = node.settings || {};
   const wrap = (inner: React.ReactNode) => (
     <div
-      className={`${cls}${dnd ? ' mel-draggable' : ''}`}
-      draggable={!!dnd}
+      className={`${cls}${dnd && !lockTo ? ' mel-draggable' : ''}`}
+      draggable={!!dnd && !lockTo}
       onDragStart={(e) => { if (guardEdit(e)) return; e.stopPropagation(); dnd?.onNodeDragStart(node.id, e); }}
       onDragEnd={dnd?.onDragEnd}
-      onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+      onClick={selectSelf}
       onContextMenu={contextMenu}
     >{inner}</div>
   );
@@ -173,6 +184,22 @@ export function PreviewNode({ node, selected, selectedId, onSelect, onInlineEdit
     case 'menu-cart': return wrap(<span className="mel-menucart"><span className="mel-cart-icon">🛒</span>{s.showCount !== false && <span className="mel-cart-count">0</span>}{!!s.showTotal && <span className="mel-cart-total">$0.00</span>}</span>);
     case 'woo-cart': return wrap(<div className="mel-wooembed">🛒 Cart shows here (WooCommerce)</div>);
     case 'woo-checkout': return wrap(<div className="mel-wooembed">💳 Checkout shows here (WooCommerce)</div>);
+    case 'pattern-ref': {
+      const pid = typeof s.patternId === 'string' ? s.patternId : '';
+      const exp = pid && expansions ? expansions[node.id] : undefined;
+      const label = (pid && patternNames?.[pid]) || pid || 'missing pattern';
+      if (!exp) return wrap(<div className="mel-linked-missing">🔗 {label} (not found)</div>);
+      return wrap(
+        <div className="mel-linked">
+          <div className="mel-linked-tag" title="Linked pattern — edits happen at the source">🔗 {label}</div>
+          <PreviewNode
+            node={exp} selected={false} selectedId={selectedId}
+            onSelect={onSelect} onContext={onContext} dnd={dnd}
+            expansions={expansions} patternNames={patternNames} lockTo={node.id}
+          />
+        </div>
+      );
+    }
     case 'countdown': return wrap(
       <div className="mel-countdown">
         {[['7', 'days'], ['00', 'hrs'], ['00', 'min'], ['00', 'sec']].map(([n, l]) => (

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { blankDoc, uid, type MelDoc, type MelNode, type WidgetType } from './types';
-import { insertAt, moveNode as moveTreeNode, siblingSlot } from './tree';
+import { freshCopy, insertAt, moveNode as moveTreeNode, replaceNode as replaceTreeNode, siblingSlot } from './tree';
 
 interface EditorState {
   doc: MelDoc;
@@ -12,6 +12,7 @@ interface EditorState {
   addWidget: (type: WidgetType) => void;
   addWidgetAt: (type: WidgetType, parentId: string, index: number) => boolean;
   insertNode: (node: MelNode) => void;
+  replaceNode: (id: string, node: MelNode) => boolean;
   duplicateSelected: () => void;
   moveNode: (dragId: string, parentId: string, index: number) => boolean;
   nudgeSelected: (dir: -1 | 1) => void;
@@ -24,9 +25,6 @@ interface EditorState {
 }
 
 const snap = (doc: MelDoc) => JSON.stringify(doc);
-
-/** Deep copy with fresh ids, so pastes/duplicates never collide. */
-const remapIds = (n: MelNode): MelNode => ({ ...n, id: uid(), elements: (n.elements || []).map(remapIds) });
 
 function mapNode(n: MelNode, id: string, fn: (n: MelNode) => MelNode | null): MelNode | null {
   if (n.id === id) return fn(n);
@@ -77,6 +75,7 @@ function defaults(type: WidgetType): Partial<MelNode> {
       settings: { menu: 0, layout: 'horizontal', showToggle: true },
       style: {},
     };
+    default: return { settings: {}, style: {} };
     case 'products': return {
       settings: { count: 8, columns: 4, order: 'DESC', orderBy: 'date', category: 0, showImage: true, showTitle: true, showPrice: true, showRating: true, showBadge: true, showCart: true },
       style: {},
@@ -142,16 +141,26 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   insertNode: (node) =>
     set((s) => {
-      const copy = remapIds(node);
+      const copy = freshCopy(node);
       return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root: { ...s.doc.root, elements: [...s.doc.root.elements, copy] } } };
     }),
+  replaceNode: (id, node) => {
+    let ok = false;
+    set((s) => {
+      const root = replaceTreeNode(s.doc.root, id, node);
+      if (!root) return s;
+      ok = true;
+      return { past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: node.id, doc: { ...s.doc, root } };
+    });
+    return ok;
+  },
   duplicateSelected: () => {
     const { doc, selectedId } = get();
     if (!selectedId) return;
     const slot = siblingSlot(doc.root, selectedId);
     const node = slot ? slot.parent.elements[slot.index] : null;
     if (!slot || !node) return;
-    const copy = remapIds(node);
+    const copy = freshCopy(node);
     const root = insertAt(doc.root, slot.parent.id, slot.index + 1, copy);
     if (!root) return;
     set((s) => ({ past: [...s.past.slice(-49), snap(s.doc)], future: [], dirty: true, selectedId: copy.id, doc: { ...s.doc, root } }));

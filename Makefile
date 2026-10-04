@@ -20,5 +20,6 @@ check:
 	php -l includes/Theme.php
 	php -l includes/Migrator.php
 	php -l includes/Blocks.php
+	php -l includes/Patterns.php
 	node --check assets/blocks/template.js
 	cargo test --manifest-path core/Cargo.toml

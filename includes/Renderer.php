@@ -27,6 +27,8 @@ class Renderer {
 		if ( ! is_array( $doc ) || ! isset( $doc['root'] ) ) {
 			return '';
 		}
+		// Canonical docs keep pattern-refs; bake the expansion for output.
+		list( $doc, ) = Patterns::expand( $doc );
 		$html = self::render_node( $doc['root'] );
 		if ( '' === $html ) {
 			return '';

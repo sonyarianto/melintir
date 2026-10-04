@@ -2,7 +2,9 @@ import { Fragment, useEffect, useMemo, useState, type DragEvent, type MouseEvent
 import { useEditor } from './store';
 import { generateCss, initWasm, isWasm } from './wasm';
 import { DropSlot, PreviewNode, wpApiBase, wpApiUrl, type DndCtx, type WpMenu } from './widgets';
-import type { MelNode, WidgetType } from './types';
+import { expandPreview } from './tree';
+import { freshCopy } from './tree';
+import { uid, type MelDoc, type MelNode, type WidgetType } from './types';
 
 type BP = 'desktop' | 'tablet' | 'mobile';
 
@@ -49,7 +51,8 @@ function Num({ value, onChange }: { value: number | undefined; onChange: (v: num
 }
 
 export default function App() {
-  const { doc, selectedId, setSelected, addWidget, addWidgetAt, insertNode, duplicateSelected, moveNode, nudgeSelected, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
+  const { doc, selectedId, setSelected, addWidget, addWidgetAt, insertNode, replaceNode, duplicateSelected, moveNode, nudgeSelected, updateNode, removeNode, undo, redo, load, dirty, setGlobals } = useEditor();
+  const [srcStash, setSrcStash] = useState<{ doc: MelDoc; pid: string; name: string } | null>(null);
   const [wasmOk, setWasmOk] = useState(false);
   const [status, setStatus] = useState('loading…');
   const [saving, setSaving] = useState(false);
@@ -132,15 +135,100 @@ export default function App() {
     const d: any = (window as any).MelintirData;
     if (!d?.patternsUrl) return;
     try {
-      await fetch(`${d.patternsUrl}/${encodeURIComponent(id)}`, {
+      const r = await fetch(`${d.patternsUrl}/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { 'X-WP-Nonce': d.nonce },
       });
+      const j = await r.json().catch(() => null);
+      if (j?.code) {
+        setStatus(`cannot delete: ${j.message || j.code}`);
+        return;
+      }
+      setStatus('pattern deleted');
       refreshPatterns();
     } catch { /* offline */ }
   };
 
-  const { css, ms } = useMemo(() => generateCss(doc), [doc, wasmOk]);
+  /** Open a pattern for editing (stashes the page doc; Back restores it). */
+  const editPatternSource = (pid: string) => {
+    const src = patternMap[pid];
+    if (!src) {
+      setStatus('pattern not found');
+      return;
+    }
+    setSrcStash({ doc, pid, name: patternNames[pid] || pid });
+    load({
+      version: doc.version,
+      root: { id: 'root', elType: 'container', settings: {}, style: {}, elements: [src] },
+      globals: doc.globals,
+    } as MelDoc);
+    setSelected(null);
+    setStatus(`editing pattern: ${patternNames[pid] || pid}`);
+  };
+
+  const backToPage = () => {
+    if (!srcStash) return;
+    load(srcStash.doc, false);
+    setSrcStash(null);
+    setStatus('back to page (pattern edits kept separately)');
+  };
+
+  /** Write the canvas back to the open pattern, then re-bake using pages. */
+  const commitPattern = async () => {
+    const d: any = (window as any).MelintirData;
+    if (!srcStash || !d?.patternsUrl) return;
+    const node = doc.root.elements?.[0];
+    if (!node) {
+      setStatus('pattern is empty — nothing to save');
+      return;
+    }
+    try {
+      const r = await fetch(`${d.patternsUrl}/${encodeURIComponent(srcStash.pid)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': d.nonce },
+        body: JSON.stringify({ node }),
+      });
+      const j = await r.json();
+      if (j?.ok) {
+        const n = j.propagated?.updated?.length ?? 0;
+        setStatus(`pattern saved — ${n} page(s) updated`);
+        useEditor.setState({ dirty: false });
+        refreshPatterns();
+      } else setStatus(`pattern save failed: ${j?.message || JSON.stringify(j)}`);
+    } catch (e: any) {
+      setStatus('pattern save failed: ' + e.message);
+    }
+  };
+
+  /** Convert a live link into an independent copy, in place. */
+  const unlinkRef = (refId: string, pid: string) => {
+    const src = patternMap[pid];
+    if (!src) {
+      setStatus('pattern not found');
+      return;
+    }
+    if (replaceNode(refId, freshCopy(src))) setStatus('unlinked to a plain copy');
+    else setStatus('unlink failed');
+  };
+
+  const patternMap = useMemo(() => {
+    const m: Record<string, MelNode> = {};
+    patterns.forEach((p) => {
+      if (p?.id && p?.node && typeof p.node === 'object') m[p.id] = p.node as MelNode;
+    });
+    return m;
+  }, [patterns]);
+  const patternNames = useMemo(() => {
+    const m: Record<string, string> = {};
+    patterns.forEach((p) => {
+      if (p?.id) m[p.id] = p.name || p.id;
+    });
+    return m;
+  }, [patterns]);
+  // Preview resolves refs client-side (same deterministic rules as PHP);
+  // the saved doc keeps its refs.
+  const preview = useMemo(() => expandPreview(doc, patternMap), [doc, patternMap]);
+  const { css, ms } = useMemo(() => generateCss({ ...doc, root: preview.root } as MelDoc), [doc, preview, wasmOk]);
 
   const save = async () => {
     const d: any = (window as any).MelintirData;
@@ -400,11 +488,21 @@ export default function App() {
       <style>{css}</style>
       <aside className="mel-panel">
         <h3>Melintir v{(window as any).MelintirData?.version || 'dev'} {isWasm() || wasmOk ? '⚡WASM' : 'JS-fallback'}</h3>
-        <div className="mel-row">
-          <button onClick={undo}>↩</button>
-          <button onClick={redo}>↪</button>
-          <button onClick={save} disabled={saving || !dirty}>{saving ? '…' : 'Save'}</button>
-        </div>
+        {srcStash ? (
+          <>
+            <p className="mel-status">🔗 editing pattern: {srcStash.name} (page stashed)</p>
+            <div className="mel-row">
+              <button onClick={commitPattern}>Save pattern</button>
+              <button onClick={backToPage}>← Back to page</button>
+            </div>
+          </>
+        ) : (
+          <div className="mel-row">
+            <button onClick={undo}>↩</button>
+            <button onClick={redo}>↪</button>
+            <button onClick={save} disabled={saving || !dirty}>{saving ? '…' : 'Save'}</button>
+          </div>
+        )}
         <div className="mel-row" role="tablist" aria-label="Breakpoint">
           {(['desktop', 'tablet', 'mobile'] as BP[]).map((b) => (
             <button key={b} role="tab" aria-selected={bp === b} className={bp === b ? 'mel-active' : ''} onClick={() => setBp(b)}>
@@ -488,6 +586,15 @@ export default function App() {
               <div key={p.id} className="mel-row">
                 <span className="mel-status">{p.name}</span>
                 <button onClick={() => { insertNode(p.node); setStatus(`inserted: ${p.name}`); }}>Insert</button>
+                <button
+                  title="Insert as a live link (updates when the pattern changes)"
+                  onClick={() => {
+                    insertNode({ id: uid(), elType: 'widget', widgetType: 'pattern-ref', settings: { patternId: p.id }, style: {}, elements: [] } as MelNode);
+                    setStatus(`linked: ${p.name}`);
+                  }}
+                >
+                  🔗 Link
+                </button>
                 <button onClick={() => deletePattern(p.id)}>✕</button>
               </div>
             ))}
@@ -523,6 +630,8 @@ export default function App() {
             onRemove={() => removeNode(sel.id)}
             onCopy={() => copySelected(sel)}
             onHover={(patch) => updateNode(sel.id, { style: { hover: { ...((sel.style as any)?.hover || {}), ...patch } } })}
+            onEditSource={() => editPatternSource((sel.settings as any)?.patternId)}
+            onUnlink={() => unlinkRef(sel.id, (sel.settings as any)?.patternId)}
             onClearHover={() => updateNode(sel.id, { style: { ...(sel.style as any), hover: {} } })}
             onDuplicate={() => duplicateSelected()}
             onUp={() => nudgeSelected(-1)}
@@ -535,7 +644,7 @@ export default function App() {
           {(doc.root.elements || []).map((n, i) => (
             <Fragment key={n.id}>
               <DropSlot parentId={doc.root.id} index={i} dnd={dnd} />
-              <PreviewNode node={n} selected={n.id === selectedId} selectedId={selectedId} onSelect={setSelected} onInlineEdit={(id, field, value) => updateNode(id, { settings: { [field]: value } })} onContext={(_id, x, y) => setCtxMenu({ id: _id, x, y })} dnd={dnd} />
+              <PreviewNode node={n} selected={n.id === selectedId} selectedId={selectedId} onSelect={setSelected} onInlineEdit={(id, field, value) => updateNode(id, { settings: { [field]: value } })} onContext={(_id, x, y) => setCtxMenu({ id: _id, x, y })} dnd={dnd} expansions={preview.refs} patternNames={patternNames} />
             </Fragment>
           ))}
           <DropSlot parentId={doc.root.id} index={(doc.root.elements || []).length} dnd={dnd} />
@@ -566,7 +675,7 @@ export default function App() {
   );
 }
 
-function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onHover, onClearHover, onDuplicate, onUp, onDown }: {
+function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onCopy, onHover, onClearHover, onEditSource, onUnlink, onDuplicate, onUp, onDown }: {
   node: MelNode;
   bp: BP;
   scope: { layout: any; typo: any };
@@ -577,6 +686,8 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
   onCopy: () => void;
   onHover: (patch: Record<string, any>) => void;
   onClearHover: () => void;
+  onEditSource: () => void;
+  onUnlink: () => void;
   onDuplicate: () => void;
   onUp: () => void;
   onDown: () => void;
@@ -584,6 +695,21 @@ function Inspector({ node, bp, scope, globals, onStyle, onSetting, onRemove, onC
   const s = node.settings || {};
   const L = scope.layout;
   const T = scope.typo;
+  // Live links carry no style of their own (the bake drops ref styling);
+  // they get a dedicated panel instead of the normal sections.
+  if (node.widgetType === 'pattern-ref') {
+    return (
+      <div className="mel-inspector">
+        <h4>🔗 linked pattern<button onClick={onRemove}>✕</button></h4>
+        <p className="mel-status">{(s as any)?.patternId || 'missing pattern'}</p>
+        <p className="mel-status">Content updates when the pattern is saved. Click content to select this link.</p>
+        <div className="mel-row">
+          <button onClick={onEditSource}>Edit source</button>
+          <button onClick={onUnlink}>Unlink to copy</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mel-inspector">
       <h4>
