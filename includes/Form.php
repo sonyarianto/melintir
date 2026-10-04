@@ -17,6 +17,8 @@ class Form {
 		add_action( 'init', array( __CLASS__, 'post_type' ) );
 		add_action( 'admin_post_melintir_submit', array( __CLASS__, 'submit' ) );
 		add_action( 'admin_post_nopriv_melintir_submit', array( __CLASS__, 'submit' ) );
+		add_action( 'admin_post_melintir_export_csv', array( __CLASS__, 'export_csv' ) );
+		add_action( 'restrict_manage_posts', array( __CLASS__, 'export_button' ) );
 	}
 
 	public static function post_type() {
@@ -63,7 +65,7 @@ class Form {
 		if ( null === $doc ) {
 			$fail();
 		}
-		list( $fields, $button_ignored, $success_ignored ) = $doc; // phpcs:ignore
+		list( $fields, $button_ignored, $success_ignored, $form_opts ) = array_pad( $doc, 4, array() ); // phpcs:ignore
 
 		$values = isset( $_POST['mel_f'] ) && is_array( $_POST['mel_f'] ) ? $_POST['mel_f'] : array(); // phpcs:ignore
 		$clean  = array();
@@ -80,6 +82,24 @@ class Form {
 				$fail();
 			}
 			$clean[ $f['name'] ] = sanitize_text_field( $raw );
+		}
+
+		// Turnstile (only when the form opts in AND global keys exist).
+		if ( ! empty( $form_opts['turnstile'] ) && ! self::verify_turnstile() ) {
+			$fail();
+		}
+
+		/**
+		 * Custom spam/abuse check.
+		 *
+		 * @param true|\WP_Error $ok     Return WP_Error to reject the submission.
+		 * @param array          $clean  Sanitized field values.
+		 * @param int            $post_id
+		 * @param string         $node_id
+		 */
+		$spam_check = apply_filters( 'melintir_form_spam_check', true, $clean, $post_id, $node_id );
+		if ( is_wp_error( $spam_check ) ) {
+			$fail();
 		}
 
 		$entry_id = wp_insert_post(
@@ -104,8 +124,9 @@ class Form {
 			foreach ( $clean as $k => $v ) {
 				$lines[] = $k . ': ' . $v;
 			}
+			$to = ( is_array( $form_opts ) && ! empty( $form_opts['to'] ) && is_email( $form_opts['to'] ) ) ? $form_opts['to'] : get_option( 'admin_email' );
 			wp_mail(
-				get_option( 'admin_email' ),
+				$to,
 				sprintf( '[Melintir] %s', __( 'New form entry', 'melintir' ) ),
 				implode( "\n", $lines )
 			);
@@ -116,11 +137,90 @@ class Form {
 	}
 
 	/**
+	 * Verify a Cloudflare Turnstile token. Returns true when Turnstile is
+	 * not configured (per-form opt-in requires global keys to enforce).
+	 *
+	 * @return bool
+	 */
+	private static function verify_turnstile() {
+		$secret = get_option( 'melintir_turnstile_secret', '' );
+		if ( '' === $secret ) {
+			return true;
+		}
+		$token = isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : ''; // phpcs:ignore
+		if ( '' === $token ) {
+			return false;
+		}
+		$resp = wp_remote_post(
+			'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+			array(
+				'timeout' => 10,
+				'body'    => array(
+					'secret'   => $secret,
+					'response' => $token,
+				),
+			)
+		);
+		if ( is_wp_error( $resp ) ) {
+			return false;
+		}
+		$data = json_decode( wp_remote_retrieve_body( $resp ), true );
+		return is_array( $data ) && ! empty( $data['success'] );
+	}
+
+	/**
+	 * CSV download of all entries. Capability + nonce gated.
+	 */
+	public static function export_csv() {
+		if ( ! current_user_can( 'edit_posts' ) || ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ), 'melintir_export_csv' ) ) { // phpcs:ignore
+			wp_die( esc_html__( 'You cannot export entries.', 'melintir' ), 403 );
+		}
+		$entries = get_posts(
+			array(
+				'post_type'   => 'melintir_entry',
+				'post_status' => 'private',
+				'numberposts' => 1000,
+				'orderby'     => 'date',
+				'order'       => 'DESC',
+			)
+		);
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=melintir-entries-' . gmdate( 'Ymd-His' ) . '.csv' );
+		$out = fopen( 'php://output', 'w' ); // phpcs:ignore
+		fputcsv( $out, array( 'id', 'date', 'page_id', 'node_id', 'data' ) );
+		foreach ( $entries as $e ) {
+			fputcsv(
+				$out,
+				array(
+					$e->ID,
+					$e->post_date,
+					get_post_meta( $e->ID, '_melintir_post_id', true ),
+					get_post_meta( $e->ID, '_melintir_node_id', true ),
+					get_post_meta( $e->ID, '_melintir_form_data', true ),
+				)
+			);
+		}
+		exit;
+	}
+
+	/**
+	 * Export button on the Entries list screen.
+	 */
+	public static function export_button() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'edit-melintir_entry' !== $screen->id ) {
+			return;
+		}
+		$url = wp_nonce_url( admin_url( 'admin-post.php?action=melintir_export_csv' ), 'melintir_export_csv' );
+		echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html__( 'Export CSV', 'melintir' ) . '</a>';
+	}
+
+	/**
 	 * Locate the form widget's field defs in the saved doc.
 	 *
 	 * @param int    $post_id
 	 * @param string $node_id
-	 * @return array|null [fields, buttonText, successMsg]
+	 * @return array|null [fields, buttonText, successMsg, opts(to, turnstile)]
 	 */
 	private static function find_form( $post_id, $node_id ) {
 		$raw = $post_id ? get_post_meta( $post_id, MELINTIR_META_DATA, true ) : '';
@@ -133,7 +233,15 @@ class Form {
 			return null;
 		}
 		$sett = $found['settings'] ?? array();
-		return array( $sett['fields'] ?? array(), $sett['buttonText'] ?? 'Send', $sett['successMsg'] ?? '' );
+		return array(
+			$sett['fields'] ?? array(),
+			$sett['buttonText'] ?? 'Send',
+			$sett['successMsg'] ?? '',
+			array(
+				'to'        => $sett['to'] ?? '',
+				'turnstile' => ! empty( $sett['turnstile'] ),
+			),
+		);
 	}
 
 	private static function walk( $node, $node_id ) {

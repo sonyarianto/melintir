@@ -230,6 +230,9 @@ class Security {
 				$out['fields']     = $clean_fields;
 				$out['buttonText'] = isset( $settings['buttonText'] ) ? sanitize_text_field( (string) $settings['buttonText'] ) : 'Send';
 				$out['successMsg'] = isset( $settings['successMsg'] ) ? sanitize_text_field( (string) $settings['successMsg'] ) : 'Thanks! We got your message.';
+				$to = isset( $settings['to'] ) ? sanitize_email( (string) $settings['to'] ) : '';
+				$out['to']         = $to && is_email( $to ) ? $to : '';
+				$out['turnstile']  = ! empty( $settings['turnstile'] );
 				break;
 			case 'loop':
 				$type = isset( $settings['postType'] ) ? sanitize_key( (string) $settings['postType'] ) : 'post';

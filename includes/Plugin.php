@@ -43,6 +43,35 @@ class Plugin {
 			'dashicons-layout',
 			58
 		);
+		add_submenu_page(
+			'melintir',
+			__( 'Melintir Settings', 'melintir' ),
+			__( 'Settings', 'melintir' ),
+			'manage_options',
+			'melintir-settings',
+			array( __CLASS__, 'settings_page' )
+		);
+	}
+
+	public static function settings_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You cannot manage settings.', 'melintir' ) );
+		}
+		if ( isset( $_POST['melintir_settings_nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['melintir_settings_nonce'] ), 'melintir_settings' ) ) { // phpcs:ignore
+			update_option( 'melintir_turnstile_sitekey', isset( $_POST['turnstile_sitekey'] ) ? sanitize_text_field( wp_unslash( $_POST['turnstile_sitekey'] ) ) : '' ); // phpcs:ignore
+			update_option( 'melintir_turnstile_secret', isset( $_POST['turnstile_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['turnstile_secret'] ) ) : '' ); // phpcs:ignore
+			echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved.', 'melintir' ) . '</p></div>';
+		}
+		$sitekey = get_option( 'melintir_turnstile_sitekey', '' );
+		$secret  = get_option( 'melintir_turnstile_secret', '' );
+		echo '<div class="wrap"><h1>' . esc_html__( 'Melintir Settings', 'melintir' ) . '</h1>';
+		echo '<form method="post">';
+		wp_nonce_field( 'melintir_settings', 'melintir_settings_nonce' );
+		echo '<table class="form-table"><tr><th>' . esc_html__( 'Turnstile site key', 'melintir' ) . '</th><td><input type="text" name="turnstile_sitekey" value="' . esc_attr( $sitekey ) . '" class="regular-text" /></td></tr>';
+		echo '<tr><th>' . esc_html__( 'Turnstile secret key', 'melintir' ) . '</th><td><input type="password" name="turnstile_secret" value="' . esc_attr( $secret ) . '" class="regular-text" autocomplete="new-password" /></td></tr></table>';
+		echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile keys. Per-form opt-in lives in the form widget inspector. Empty keys = Turnstile off.', 'melintir' ) . '</p>';
+		submit_button();
+		echo '</form></div>';
 	}
 
 	public function admin_page() {

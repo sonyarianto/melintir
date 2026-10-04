@@ -578,6 +578,10 @@ function Inspector({ node, bp, scope, onStyle, onSetting, onRemove }: {
           <button onClick={() => onSetting({ fields: [...(s.fields || []), { label: 'New field', name: `field_${(s.fields || []).length}`, type: 'text', required: false, options: [] }] })}>+ add field</button>
           <Field label="Button text"><input value={s.buttonText || ''} onChange={(e) => onSetting({ buttonText: e.target.value })} /></Field>
           <Field label="Success message"><input value={s.successMsg || ''} onChange={(e) => onSetting({ successMsg: e.target.value })} /></Field>
+          <Field label="Recipient email (blank = site admin)"><input type="email" placeholder="forms@example.com" value={s.to || ''} onChange={(e) => onSetting({ to: e.target.value })} /></Field>
+          <div className="mel-row">
+            <label><input type="checkbox" checked={!!s.turnstile} onChange={(e) => onSetting({ turnstile: e.target.checked })} /> Turnstile check (needs keys in Melintir → Settings)</label>
+          </div>
         </>
       )}
 

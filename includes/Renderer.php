@@ -221,8 +221,14 @@ class Renderer {
 			}
 			$out .= '</label>';
 		}
-		$out .= '<button type="submit" class="mel-btn">' . esc_html( $btn ) . '</button></form>';
-		return $out;
+		$out .= '<button type="submit" class="mel-btn">' . esc_html( $btn ) . '</button>';
+		// Cloudflare Turnstile widget (only when the form opts in and keys exist).
+		$sitekey = get_option( 'melintir_turnstile_sitekey', '' );
+		if ( ! empty( $sett['turnstile'] ) && '' !== $sitekey ) {
+			$out .= '<div class="cf-turnstile" data-sitekey="' . esc_attr( $sitekey ) . '"></div>';
+			$out .= '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+		}
+		return $out . '</form>';
 	}
 
 	/**
